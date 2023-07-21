@@ -35,6 +35,9 @@ elif os.environ.get("OPENAI_PROXY") is not None:
 else:
     print("Warning: OPENAI_PROXY is not set")
 
+def already_english(str):
+    return len(str) == len(str.encode('utf-8'))
+
 logs = []
 logs.append(f"issue: {args.issue}")
 logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
@@ -59,14 +62,19 @@ title = j_res["title"]
 body = j_res["body"]
 comments_url = j_res["comments_url"]
 print("")
+print(f"===============ISSUE===============")
 print(f"Url: {args.issue}")
 print(f"Title: {title}")
 print(f"Body:\n{body}\n")
 
-if TRANS_MAGIC in body:
-    print(f"Already translated, skip")
+messages = []
+issue_changed = False
+if already_english(title):
+    print(f"Title is already english, skip")
+elif TRANS_MAGIC in title:
+    print(f"Title is already translated, skip")
 else:
-    messages = []
+    issue_changed = True
     messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{title}'"})
     completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -76,6 +84,12 @@ else:
     messages.append({"role": "assistant", "content": f"{title_trans}"})
     print(f"Title: {title_trans}")
 
+if already_english(body):
+    print(f"Body is already english, skip")
+elif TRANS_MAGIC in body:
+    print(f"Body is already translated, skip")
+else:
+    issue_changed = True
     messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{body}'\n{PROMPT_SANDWICH}"})
     completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -85,6 +99,9 @@ else:
     messages.append({"role": "assistant", "content": f"{body_trans}"})
     print(f"Body:\n{body_trans}\n")
 
+if not issue_changed:
+    print(f"Nothing changed, skip")
+else:
     headers = {
         "Accept": "application/vnd.github+json",
         "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
@@ -114,11 +131,13 @@ for index, j_res_c in enumerate(j_res):
     c_url = j_res_c["url"]
     c_body = j_res_c["body"]
     print("")
-    print(f"Comment: #{index+1}")
+    print(f"===============Comment(#{index+1})===============")
     print(f"URL: {c_url}")
     print(f"Body:\n{c_body}\n")
 
-    if TRANS_MAGIC in c_body:
+    if already_english(c_body):
+        print(f"Body is already english, skip")
+    elif TRANS_MAGIC in c_body:
         print(f"Already translated, skip")
     else:
         messages = []
