@@ -31,6 +31,6 @@ pip install -r requirements.txt
 Translate issues to English:
 
 ```bash
-python translate.py --issue=https://github.com/ossrs/srs/issues/3692
+python issues.py --issue=https://github.com/ossrs/srs/issues/3692
 ```
 
