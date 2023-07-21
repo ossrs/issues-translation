@@ -20,17 +20,10 @@ export OPENAI_PROXY=xxx
 
 > Note: The OPENAI_PROXY is optional, which is the proxy for OpenAI API.
 
-Start a venv and install dependencies:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+> Note: Or save the above environment variables to `.env`.
 
 Translate issues to English:
 
 ```bash
-python issues.py --issue=https://github.com/ossrs/srs/issues/3692
+bash issues.sh --issue=https://github.com/ossrs/srs/issues/3692
 ```
-

@@ -160,13 +160,23 @@ elif already_english(body):
 else:
     issue_changed = True
     issue_trans_by_gpt = True
-    messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{body}'\n{PROMPT_SANDWICH}"})
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-    )
-    body_trans = completion.choices[0].message.content.strip('\'"')
-    messages.append({"role": "assistant", "content": f"{body_trans}"})
+    body_segments = body.split("```")
+    final_segments_trans = []
+    for body_segment in body_segments:
+        if already_english(body_segment):
+            print(f"Body segment is already english, skip: {len(body_segment)}B")
+            final_segments_trans.append(body_segment)
+        else:
+            print(f"Translating body segment: {len(body_segment)}B")
+            messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{body_segment}'\n{PROMPT_SANDWICH}"})
+            completion = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+            )
+            body_segment_trans = completion.choices[0].message.content.strip('\'"')
+            messages.append({"role": "assistant", "content": f"{body_segment_trans[:128]}"})
+            final_segments_trans.append(body_segment_trans)
+    body_trans = "\n```\n".join(final_segments_trans)
     body_trans = f"{body_trans}\n\n`{TRANS_MAGIC}`"
     print(f"Body:\n{body_trans}\n")
 
