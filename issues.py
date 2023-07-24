@@ -5,7 +5,7 @@ starttime = time.time()
 import os, sys, openai, argparse, requests
 
 parser = argparse.ArgumentParser(description="Translation")
-parser.add_argument("--issue", type=str, required=True, help="GitHub issue URL, for example, https://github.com/ossrs/srs/issues/3692")
+parser.add_argument("--input", type=str, required=True, help="GitHub issue URL, for example, https://github.com/ossrs/srs/issues/3692")
 parser.add_argument("--token", type=str, required=False, help="GitHub access token, for example, github_pat_xxx_yyyyyy")
 parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy, for example, x.y.z")
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
@@ -41,13 +41,13 @@ def already_english(str):
     return len(str) == len(str.encode('utf-8'))
 
 logs = []
-logs.append(f"issue: {args.issue}")
+logs.append(f"issue: {args.input}")
 logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
-logs.append(f"proxy: {openai.api_base}")
+logs.append(f"proxy: {len(openai.api_base)}B")
 logs.append(f"key: {len(openai.api_key)}B")
 print(f"run with {', '.join(logs)}")
 
-issue_api = args.issue.replace("https://github.com", "https://api.github.com/repos")
+issue_api = args.input.replace("https://github.com", "https://api.github.com/repos")
 print(f"api: {issue_api}")
 headers = {
     "Accept": "application/vnd.github+json",
@@ -124,7 +124,7 @@ for label in labels:
     labels_for_print.append(f"{label['id']}({label['name']})")
 print("")
 print(f"===============ISSUE===============")
-print(f"Url: {args.issue}")
+print(f"Url: {args.input}")
 print(f"Title: {title}")
 print(f"Labels: {', '.join(labels_for_print)}")
 print(f"Body:\n{body}\n")

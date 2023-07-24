@@ -1,0 +1,33 @@
+<html>
+<head><title>GraphQL</title></head>
+<body>
+    <div><textarea type="textarea" id="query" cols="100" rows="30"></textarea></div>
+    <p><button id="send">Send</button></p>
+    <pre id="result"></pre>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+    <script>
+        const token = new URL(window.location.href).searchParams.get('token');
+        if (!token) {
+            console.warn('Query string token is empty.');
+        }
+
+        document.getElementById('send').addEventListener('click', function() {
+            const query = document.getElementById('query').value;
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+
+            axios.post('https://api.github.com/graphql', {
+                query: query,
+            }, {
+              headers: headers,
+            }).then(function (response) {
+                document.getElementById('result').innerHTML = JSON.stringify(response.data, null, 2);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -25,5 +25,14 @@ export OPENAI_PROXY=xxx
 Translate issues to English:
 
 ```bash
-bash issues.sh --issue=https://github.com/ossrs/srs/issues/3692
+bash issues.sh --input=https://github.com/ossrs/srs/issues/3692
 ```
+
+Translate discussions to English:
+
+```bash
+bash discussions.sh --input=https://github.com/orgs/ossrs/discussions/3700
+```
+
+Once translated, this tool appends a MAGIC string to the conclusion of the text body to prevent repeated translations.
+
