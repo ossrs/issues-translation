@@ -1,9 +1,8 @@
-import sys
 import time
 starttime = time.time()
 
 from urllib.parse import urlparse
-import os, sys, openai, argparse, requests
+import os, openai, argparse, requests
 
 parser = argparse.ArgumentParser(description="Translation")
 parser.add_argument("--input", type=str, required=True, help="GitHub discussion URL, for example, https://github.com/orgs/ossrs/discussions/3700")
@@ -65,27 +64,6 @@ def parse_github_url(url):
     }
 variables = parse_github_url(args.input)
 print(f"parsed input: {variables}")
-
-query = '''
-query($name: String!, $owner: String!, $label: String!) {
-  repository(name: $name, owner: $owner) {
-    label(name: $label) {
-      id
-    }
-  }
-}
-'''
-headers = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-}
-res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
-    "name": variables['name'], "owner": variables['owner'], "label": LABEL_NAME
-}}, headers=headers)
-if res.status_code != 200:
-    raise Exception(f"request failed, code={res.status_code}")
-LABEL_ID = res.json()['data']['repository']['label']['id']
-print(f"Query LABEL_NAME={LABEL_NAME}, got LABEL_ID={LABEL_ID}")
 
 query = '''
 query($name: String!, $owner: String!, $number: Int!) {
@@ -261,7 +239,6 @@ for index, j_res_c in enumerate(j_res):
 
 id = j_discussion_res['data']['repository']['discussion']["id"]
 title = j_discussion_res['data']['repository']['discussion']["title"]
-labels = j_discussion_res['data']['repository']['discussion']["labels"]["nodes"]
 body = j_discussion_res['data']['repository']['discussion']["body"]
 
 totalCount = j_discussion_res['data']['repository']['discussion']["labels"]['totalCount']
@@ -269,17 +246,17 @@ if totalCount > 100:
     raise Exception(f"labels.totalCount > 100, {totalCount} of {j_discussion_res}")
 
 has_gpt_label = False
-labels_for_print=[]
-for label in labels:
-    if label["name"] == LABEL_NAME and label["id"] == LABEL_ID:
+labels4print=[]
+for label in j_discussion_res['data']['repository']['discussion']["labels"]["nodes"]:
+    if label["name"] == LABEL_NAME:
         has_gpt_label = True
-    labels_for_print.append(f"{label['id']}({label['name']})")
+    labels4print.append(f"{label['id']}({label['name']})")
 print("")
 print(f"===============ISSUE===============")
 print(f"ID: {id}")
 print(f"Url: {args.input}")
 print(f"Title: {title}")
-print(f"Labels: {', '.join(labels_for_print)}")
+print(f"Labels: {', '.join(labels4print)}")
 print(f"Body:\n{body}\n")
 
 print(f"Updating......")
@@ -337,6 +314,27 @@ any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
     print(f"Label is already set, skip")
 else:
+    query = '''
+        query($name: String!, $owner: String!, $label: String!) {
+          repository(name: $name, owner: $owner) {
+            label(name: $label) {
+              id
+            }
+          }
+        }
+    '''
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
+    }
+    res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
+        "name": variables['name'], "owner": variables['owner'], "label": LABEL_NAME
+    }}, headers=headers)
+    if res.status_code != 200:
+        raise Exception(f"request failed, code={res.status_code}")
+    LABEL_ID = res.json()['data']['repository']['label']['id']
+    print(f"Query LABEL_NAME={LABEL_NAME}, got LABEL_ID={LABEL_ID}")
+
     query = '''
         mutation ($id: ID!, $labelIds: [ID!]!) {
           addLabelsToLabelable(

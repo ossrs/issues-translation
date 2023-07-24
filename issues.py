@@ -1,8 +1,8 @@
-import sys
 import time
 starttime = time.time()
 
-import os, sys, openai, argparse, requests
+from urllib.parse import urlparse
+import os, openai, argparse, requests
 
 parser = argparse.ArgumentParser(description="Translation")
 parser.add_argument("--input", type=str, required=True, help="GitHub issue URL, for example, https://github.com/ossrs/srs/issues/3692")
@@ -14,7 +14,6 @@ PROMPT_TRANS="translate to english:"
 PROMPT_SANDWICH="Make sure to maintain the markdown structure."
 TRANS_MAGIC="TRANS_BY_GPT3"
 LABEL_NAME="TransByAI"
-LABEL_ID=5758178147
 
 args = parser.parse_args()
 
@@ -46,6 +45,25 @@ logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
 logs.append(f"proxy: {len(openai.api_base)}B")
 logs.append(f"key: {len(openai.api_key)}B")
 print(f"run with {', '.join(logs)}")
+
+def parse_github_url(url):
+    parsed_url = urlparse(url)
+    path_parts = parsed_url.path.strip('/').split('/')
+
+    if len(path_parts) < 4 or path_parts[2] != 'issues':
+        raise ValueError("Invalid URL format")
+
+    owner = path_parts[0]
+    name = path_parts[1]
+    number = int(path_parts[3])
+
+    return {
+        'owner': owner,
+        'name': name,
+        'number': number
+    }
+variables = parse_github_url(args.input)
+print(f"parsed input: {variables}")
 
 issue_api = args.input.replace("https://github.com", "https://api.github.com/repos")
 print(f"api: {issue_api}")
@@ -112,21 +130,22 @@ for index, j_res_c in enumerate(j_res):
             raise Exception(f"request failed, code={res.status_code}")
         print(f"Updated ok")
 
+id = j_issue_res["node_id"]
 title = j_issue_res["title"]
-labels = j_issue_res["labels"]
 body = j_issue_res["body"]
 
 has_gpt_label = False
-labels_for_print=[]
-for label in labels:
-    if label["name"] == LABEL_NAME and label["id"] == LABEL_ID:
+labels4print=[]
+for label in j_issue_res["labels"]:
+    if label["name"] == LABEL_NAME:
         has_gpt_label = True
-    labels_for_print.append(f"{label['id']}({label['name']})")
+    labels4print.append(f"{label['id']}({label['name']})")
 print("")
 print(f"===============ISSUE===============")
+print(f"ID: {id}")
 print(f"Url: {args.input}")
 print(f"Title: {title}")
-print(f"Labels: {', '.join(labels_for_print)}")
+print(f"Labels: {', '.join(labels4print)}")
 print(f"Body:\n{body}\n")
 
 print(f"Updating......")
@@ -184,10 +203,50 @@ any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
     print(f"Label is already set, skip")
 else:
-    issue_changed = True
-    labels.append({"id": LABEL_ID, "name": LABEL_NAME})
-    labels_for_print.append(f"{LABEL_ID}({LABEL_NAME})")
-    print(f"Labels: {', '.join(labels_for_print)}")
+    query = '''
+        query($name: String!, $owner: String!, $label: String!) {
+          repository(name: $name, owner: $owner) {
+            label(name: $label) {
+              id
+            }
+          }
+        }
+    '''
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
+    }
+    res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
+        "name": variables['name'], "owner": variables['owner'], "label": LABEL_NAME
+    }}, headers=headers)
+    if res.status_code != 200:
+        raise Exception(f"request failed, code={res.status_code}")
+    LABEL_ID = res.json()['data']['repository']['label']['id']
+    print(f"Query LABEL_NAME={LABEL_NAME}, got LABEL_ID={LABEL_ID}")
+
+    query = '''
+        mutation ($id: ID!, $labelIds: [ID!]!) {
+          addLabelsToLabelable(
+            input: {labelableId: $id, labelIds: $labelIds}
+          ) {
+            labelable {
+              labels {
+                totalCount
+              }
+            }
+          }
+        }
+    '''
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
+    }
+    res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
+        "id": id, "labelIds": [LABEL_ID]
+    }}, headers=headers)
+    if res.status_code != 200:
+        raise Exception(f"request failed, code={res.status_code}")
+    print(f"Add label ok, {LABEL_ID}({LABEL_NAME})")
 
 if not issue_changed:
     print(f"Nothing changed, skip")
@@ -199,7 +258,6 @@ else:
     }
     res = requests.patch(issue_api, headers=headers, json={
         'title': title_trans,
-        'labels': labels,
         'body': body_trans,
     })
     if res.status_code != 200:
