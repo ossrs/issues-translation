@@ -114,6 +114,22 @@ def parse_discussion_url(url):
     """
     return parse_issue_url(url)
 
+class GithubGraphQLException(Exception):
+    def __init__(self, message, res):
+        super().__init__(message)
+        self.res = res
+        self.text = res.text
+        self.json = res.json()
+        self.errors = None
+        if 'errors' in self.json:
+            self.errors = self.json['errors']
+    def is_forbidden(self):
+        if self.errors is not None and len(self.errors) > 0:
+            for error in self.errors:
+                if error['type'] == 'FORBIDDEN':
+                    return True
+        return False
+
 def query_repository_id(owner, name):
     query = '''
         query ($owner: String!, $name: String!) {
@@ -127,7 +143,11 @@ def query_repository_id(owner, name):
     }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
+
     j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
     repository_id = j_res['data']['repository']['id']
     return repository_id
 
@@ -147,7 +167,11 @@ def create_issue(repository_id, title, body):
     }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
+
     j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
     issue_id = j_res['data']['createIssue']['issue']['id']
     issue_url = j_res['data']['createIssue']['issue']['url']
     return (issue_id, issue_url)
@@ -168,9 +192,10 @@ def create_discussion(repository_id, title, body, category_id):
     }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
+
     j_res = res.json()
     if 'errors' in j_res:
-        raise Exception(f"create discussion failed, {j_res}")
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
 
     discussion_id = j_res['data']['createDiscussion']['discussion']['id']
     discussion_url = j_res['data']['createDiscussion']['discussion']['url']
@@ -208,7 +233,10 @@ def query_issue(owner, name, issue_number):
     }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
+
     j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
 
     total_labels = j_res['data']['repository']['issue']['labels']['totalCount']
     if total_labels > 100:
@@ -240,10 +268,11 @@ def update_issue_comment(id, body):
     }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
-    j_res = res.json()
 
+    j_res = res.json()
     if 'errors' in j_res:
-        raise Exception(f"request failed, {j_res}")
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
     return j_res['data']['updateIssueComment']['issueComment']['id']
 
 def update_issue(id, title, body):
@@ -261,10 +290,11 @@ def update_issue(id, title, body):
     }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
-    j_res = res.json()
 
+    j_res = res.json()
     if 'errors' in j_res:
-        raise Exception(f"request failed, {j_res}")
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
     return j_res['data']['updateIssue']['issue']['id']
 
 def query_label_id(owner, name, label):
@@ -277,16 +307,17 @@ def query_label_id(owner, name, label):
           }
         }
     '''
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-    }
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
         "name": name, "owner": owner, "label": label
-    }}, headers=headers)
+    }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
-    id = res.json()['data']['repository']['label']['id']
+
+    j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
+    id = j_res['data']['repository']['label']['id']
     return id
 
 def query_catetory_id(owner, name, category_slug):
@@ -299,16 +330,17 @@ def query_catetory_id(owner, name, category_slug):
           }
         }
     '''
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-    }
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
         "name": name, "owner": owner, "slug": category_slug
-    }}, headers=headers)
+    }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
-    id = res.json()['data']['repository']['discussionCategory']['id']
+
+    j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
+    id = j_res['data']['repository']['discussionCategory']['id']
     return id
 
 def add_label(owner_id, label_id):
@@ -325,46 +357,52 @@ def add_label(owner_id, label_id):
           }
         }
     '''
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-    }
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
         "id": owner_id, "labelIds": [label_id]
-    }}, headers=headers)
+    }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
+
     j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
     return j_res['data']['addLabelsToLabelable']['labelable']['labels']['totalCount']
 
 def query_discussion(owner, name, discussion_number):
     query = '''
-    query($name: String!, $owner: String!, $number: Int!) {
-      repository(name: $name, owner: $owner) {
-        discussion(number: $number) {
-          id
-          body
-          title
-          number
-          labels(first: 100) {
-            totalCount
-            nodes {
+        query($name: String!, $owner: String!, $number: Int!) {
+          repository(name: $name, owner: $owner) {
+            discussion(number: $number) {
               id
-              name
-            }
-          }
-          comments(first: 100) {
-            totalCount
-            nodes {
-              id
-              url
               body
-              replies(first: 100) {
+              title
+              number
+              labels(first: 100) {
+                totalCount
+                nodes {
+                  id
+                  name
+                }
+              }
+              comments(first: 100) {
                 totalCount
                 nodes {
                   id
                   url
                   body
+                  replies(first: 100) {
+                    totalCount
+                    nodes {
+                      id
+                      url
+                      body
+                    }
+                    pageInfo {
+                      endCursor
+                      startCursor
+                    }
+                  }
                 }
                 pageInfo {
                   endCursor
@@ -372,25 +410,18 @@ def query_discussion(owner, name, discussion_number):
                 }
               }
             }
-            pageInfo {
-              endCursor
-              startCursor
-            }
           }
         }
-      }
-    }
     '''
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-    }
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
         "name": name, "owner": owner, "number": discussion_number
-    }}, headers=headers)
+    }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
+
     j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
 
     totalCount = j_res['data']['repository']['discussion']['comments']['totalCount']
     if totalCount > 100:
@@ -429,16 +460,16 @@ def update_discussion_comment(id, body):
         "id": id,
         'body': body,
     }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-    }
-    res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": variables}, headers=headers)
+    res = requests.post('https://api.github.com/graphql', json={
+        "query": query, "variables": variables
+    }, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
+
     j_res = res.json()
-    if 'errors' in res.json():
-        raise Exception(f"request failed, {res.text}")
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
     return j_res['data']['updateDiscussionComment']['comment']['id']
 
 def update_discussion(id, title, body):
@@ -453,21 +484,57 @@ def update_discussion(id, title, body):
           }
         }
     '''
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-    }
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
         "id": id,
         "title": title,
         'body': body,
-    }}, headers=headers)
+    }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
+
     j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
     return j_res['data']['updateDiscussion']['discussion']['id']
+
+def search_issues(owner, name, sort, label):
+    '''
+    Search GitHub issues, like https://github.com/ossrs/srs/issues?q=is:issue+sort:comments-desc+-label:TransByAI+
+    :param owner: For example, ossrs
+    :param name: For example, srs
+    :param sort: For example, sort:comments-desc
+    :param label: For example, -label:TransByAI
+    '''
+    query = '''
+        query ($query: String!) {
+          search(
+            query: $query
+            type: ISSUE
+            first: 10
+          ) {
+            nodes {
+              ... on Issue {
+                id
+                title
+                url
+                comments {
+                  totalCount
+                }
+              }
+            }
+          }
+        }
+    '''
+    filter = f"repo:{owner}/{name} is:issue {sort} {label}"
+    res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
+        "query": filter,
+    }}, headers=get_graphql_headers())
+    if res.status_code != 200:
+        raise Exception(f"request failed, code={res.status_code}")
+
+    j_res = res.json()
+    if 'errors' in j_res:
+        raise GithubGraphQLException(f"request failed, {j_res}", res)
+
+    return j_res['data']['search']['nodes']

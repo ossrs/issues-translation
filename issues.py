@@ -37,8 +37,14 @@ for index, j_res_c in enumerate(comments):
     (c_body_trans, comment_trans_by_gpt, real_translated) = tools.gpt_translate(c_body, comment_trans_by_gpt)
     if real_translated:
         print(f"Body:\n{c_body_trans}\n")
-        tools.update_issue_comment(c_id, tools.wrap_magic(c_body_trans))
-        print(f"Updated ok")
+        try:
+            tools.update_issue_comment(c_id, tools.wrap_magic(c_body_trans))
+            print(f"Updated ok")
+        except tools.GithubGraphQLException as e:
+            if e.is_forbidden():
+                print(f"Warning!!! Ignore update comment {c_id} failed, forbidden, {e.errors}")
+            else:
+                raise e
 
 id = j_issue_res["id"]
 title = j_issue_res["title"]
