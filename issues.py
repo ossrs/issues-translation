@@ -15,6 +15,55 @@ PROMPT_SANDWICH="Make sure to maintain the markdown structure."
 TRANS_MAGIC="TRANS_BY_GPT3"
 LABEL_NAME="TransByAI"
 
+def already_english(str):
+    return len(str) == len(str.encode('utf-8'))
+
+def split_segments(body):
+    lines = body.split('\n')
+    matches = []
+    current_matches = []
+    is_english = already_english(lines[0])
+    for line in lines:
+        if line == '':
+            current_matches.append('\n')
+            continue
+        if already_english(line) == is_english:
+            current_matches.append(line)
+        else:
+            matches.append('\n'.join(current_matches))
+            current_matches = [line]
+            is_english = already_english(line)
+    matches.append('\n'.join(current_matches))
+    return matches
+
+def gpt_translate(plaintext, trans_by_gpt):
+    segments = split_segments(plaintext)
+    final_trans = []
+    real_translated = False
+    messages = []
+    for segment in segments:
+        if TRANS_MAGIC in segment:
+            trans_by_gpt = True
+            print(f"Body segment is already translated, skip")
+            final_trans.append(segment)
+        elif already_english(segment):
+            print(f"Body segment is already english, skip")
+            final_trans.append(segment)
+        else:
+            real_translated = trans_by_gpt = True
+            messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{segment}'"})
+            if len(messages) > 3:
+                messages = messages[-3:]
+            completion = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+            )
+            segment_trans = completion.choices[0].message.content.strip('\'"')
+            messages.append({"role": "assistant", "content": segment_trans})
+            final_trans.append(segment_trans)
+    plaintext_trans = "\n".join(final_trans).strip('\n')
+    return (plaintext_trans, trans_by_gpt, real_translated)
+
 args = parser.parse_args()
 
 if args.token is not None:
@@ -35,9 +84,6 @@ elif os.environ.get("OPENAI_PROXY") is not None:
     openai.api_base = "http://" + os.environ.get("OPENAI_PROXY") + "/v1/"
 else:
     print("Warning: OPENAI_PROXY is not set")
-
-def already_english(str):
-    return len(str) == len(str.encode('utf-8'))
 
 logs = []
 logs.append(f"issue: {args.input}")
@@ -78,7 +124,12 @@ if res.status_code != 200:
     raise Exception(f"request failed, code={res.status_code}")
 
 j_issue_res = res.json()
-comments_url = j_issue_res["comments_url"]
+comments_url = f"{j_issue_res['comments_url']}?per_page=100"
+
+comments = j_issue_res['comments']
+if comments > 100:
+    raise Exception(f"too many comments, {comments}")
+print(f"comments: {comments}, url: {comments_url}")
 
 headers = {
     "Accept": "application/vnd.github+json",
@@ -101,21 +152,8 @@ for index, j_res_c in enumerate(j_res):
     print(f"Body:\n{c_body}\n")
 
     print(f"Updating......")
-    if TRANS_MAGIC in c_body:
-        comment_trans_by_gpt = True
-        print(f"Already translated, skip")
-    elif already_english(c_body):
-        print(f"Body is already english, skip")
-    else:
-        comment_trans_by_gpt = True
-        messages = []
-        messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{c_body}'"})
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-        )
-        c_body_trans = completion.choices[0].message.content.strip('\'"')
-        messages.append({"role": "assistant", "content": f"{c_body_trans}"})
+    (c_body_trans, comment_trans_by_gpt, real_translated) = gpt_translate(c_body, comment_trans_by_gpt)
+    if real_translated:
         print(f"Body:\n{c_body_trans}\n")
 
         headers = {
@@ -149,27 +187,19 @@ print(f"Labels: {', '.join(labels4print)}")
 print(f"Body:\n{body}\n")
 
 print(f"Updating......")
-messages = []
 issue_changed = False
 issue_trans_by_gpt = False
 title_trans = title
 body_trans = body
-if TRANS_MAGIC in title:
-    issue_trans_by_gpt = True
-    print(f"Title is already translated, skip")
-elif already_english(title):
+if already_english(title):
     print(f"Title is already english, skip")
 else:
-    issue_changed = True
-    issue_trans_by_gpt = True
-    messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{title}'"})
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-    )
-    title_trans = completion.choices[0].message.content.strip('\'"')
-    messages.append({"role": "assistant", "content": f"{title_trans}"})
-    print(f"Title: {title_trans}")
+    (title_trans, trans_by_gpt, real_translated) = gpt_translate(title, issue_trans_by_gpt)
+    if trans_by_gpt:
+        issue_trans_by_gpt = True
+    if real_translated:
+        issue_changed = True
+        print(f"Title: {title_trans}")
 
 if TRANS_MAGIC in body:
     issue_trans_by_gpt = True
@@ -177,27 +207,12 @@ if TRANS_MAGIC in body:
 elif already_english(body):
     print(f"Body is already english, skip")
 else:
-    issue_changed = True
-    issue_trans_by_gpt = True
-    body_segments = body.split("```")
-    final_segments_trans = []
-    for body_segment in body_segments:
-        if already_english(body_segment):
-            print(f"Body segment is already english, skip: {len(body_segment)}B")
-            final_segments_trans.append(body_segment)
-        else:
-            print(f"Translating body segment: {len(body_segment)}B")
-            messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{body_segment}'\n{PROMPT_SANDWICH}"})
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-            )
-            body_segment_trans = completion.choices[0].message.content.strip('\'"')
-            messages.append({"role": "assistant", "content": f"{body_segment_trans[:128]}"})
-            final_segments_trans.append(body_segment_trans)
-    body_trans = "\n```\n".join(final_segments_trans)
-    body_trans = f"{body_trans}\n\n`{TRANS_MAGIC}`"
-    print(f"Body:\n{body_trans}\n")
+    (body_trans, trans_by_gpt, real_translated) = gpt_translate(body, issue_trans_by_gpt)
+    if trans_by_gpt:
+        issue_trans_by_gpt = True
+    if real_translated:
+        issue_changed = True
+        print(f"Body:\n{body_trans}\n")
 
 any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
@@ -258,7 +273,7 @@ else:
     }
     res = requests.patch(issue_api, headers=headers, json={
         'title': title_trans,
-        'body': body_trans,
+        'body': f"{body_trans}\n\n`{TRANS_MAGIC}`"
     })
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")

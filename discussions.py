@@ -39,6 +39,52 @@ else:
 def already_english(str):
     return len(str) == len(str.encode('utf-8'))
 
+def split_segments(body):
+    lines = body.split('\n')
+    matches = []
+    current_matches = []
+    is_english = already_english(lines[0])
+    for line in lines:
+        if line == '':
+            current_matches.append('\n')
+            continue
+        if already_english(line) == is_english:
+            current_matches.append(line)
+        else:
+            matches.append('\n'.join(current_matches))
+            current_matches = [line]
+            is_english = already_english(line)
+    matches.append('\n'.join(current_matches))
+    return matches
+
+def gpt_translate(plaintext, trans_by_gpt):
+    segments = split_segments(plaintext)
+    final_trans = []
+    real_translated = False
+    messages = []
+    for segment in segments:
+        if TRANS_MAGIC in segment:
+            trans_by_gpt = True
+            print(f"Body segment is already translated, skip")
+            final_trans.append(segment)
+        elif already_english(segment):
+            print(f"Body segment is already english, skip")
+            final_trans.append(segment)
+        else:
+            real_translated = trans_by_gpt = True
+            messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{segment}'"})
+            if len(messages) > 3:
+                messages = messages[-3:]
+            completion = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+            )
+            segment_trans = completion.choices[0].message.content.strip('\'"')
+            messages.append({"role": "assistant", "content": segment_trans})
+            final_trans.append(segment_trans)
+    plaintext_trans = "\n".join(final_trans).strip('\n')
+    return (plaintext_trans, trans_by_gpt, real_translated)
+
 logs = []
 logs.append(f"dicussion: {args.input}")
 logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
@@ -146,42 +192,35 @@ for index, j_res_c in enumerate(j_res):
     elif already_english(c_body):
         print(f"Body is already english, skip")
     else:
-        comment_trans_by_gpt = True
-        messages = []
-        messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{c_body}'"})
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-        )
-        c_body_trans = completion.choices[0].message.content.strip('\'"')
-        messages.append({"role": "assistant", "content": f"{c_body_trans}"})
-        print(f"Body:\n{c_body_trans}\n")
+        (c_body_trans, comment_trans_by_gpt, real_translated) = gpt_translate(c_body, comment_trans_by_gpt)
+        if real_translated:
+            print(f"Body:\n{c_body_trans}\n")
 
-        query = '''
-            mutation ($id: ID!, $body: String!) {
-              updateDiscussionComment(
-                input: {commentId: $id, body: $body}
-              ) {
-                comment {
-                  id
+            query = '''
+                mutation ($id: ID!, $body: String!) {
+                  updateDiscussionComment(
+                    input: {commentId: $id, body: $body}
+                  ) {
+                    comment {
+                      id
+                    }
+                  }
                 }
-              }
+            '''
+            variables = {
+                "id": c_id,
+                "body": f"{c_body_trans}\n\n`{TRANS_MAGIC}`"
             }
-        '''
-        variables = {
-            "id": c_id,
-            "body": f"{c_body_trans}\n\n`{TRANS_MAGIC}`"
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-        }
-        res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": variables}, headers=headers)
-        if res.status_code != 200:
-            raise Exception(f"request failed, code={res.status_code}")
-        if 'errors' in res.json():
-            raise Exception(f"request failed, {res.text}")
-        print(f"Updated ok")
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
+            }
+            res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": variables}, headers=headers)
+            if res.status_code != 200:
+                raise Exception(f"request failed, code={res.status_code}")
+            if 'errors' in res.json():
+                raise Exception(f"request failed, {res.text}")
+            print(f"Updated ok")
 
     for position, j_res_c_reply in enumerate(j_res_c["replies"]["nodes"]):
         reply_id = j_res_c_reply["id"]
@@ -199,43 +238,36 @@ for index, j_res_c in enumerate(j_res):
         elif already_english(reply_body):
             print(f"Body is already english, skip")
         else:
-            comment_trans_by_gpt = True
-            messages = []
-            messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{reply_body}'"})
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-            )
-            reply_body_trans = completion.choices[0].message.content.strip('\'"')
-            messages.append({"role": "assistant", "content": f"{reply_body_trans}"})
-            print(f"Body:\n{reply_body_trans}\n")
+            (reply_body_trans, comment_trans_by_gpt, real_translated) = gpt_translate(reply_body, comment_trans_by_gpt)
+            if real_translated:
+                print(f"Body:\n{reply_body_trans}\n")
 
-            query = '''
-                mutation ($id: ID!, $body: String!) {
-                  updateDiscussionComment(
-                    input: {commentId: $id, body: $body}
-                  ) {
-                    comment {
-                      id
+                query = '''
+                    mutation ($id: ID!, $body: String!) {
+                      updateDiscussionComment(
+                        input: {commentId: $id, body: $body}
+                      ) {
+                        comment {
+                          id
+                        }
+                      }
                     }
-                  }
+                '''
+                variables = {
+                    "id": reply_id,
+                    "body": f"{reply_body_trans}\n\n`{TRANS_MAGIC}`"
                 }
-            '''
-            variables = {
-                "id": reply_id,
-                "body": f"{reply_body_trans}\n\n`{TRANS_MAGIC}`"
-            }
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-            }
-            res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": variables}, headers=headers)
-            if res.status_code != 200:
-                raise Exception(f"request failed, code={res.status_code}")
-            r0 = res.json()
-            if 'errors' in r0:
-                raise Exception(f"request failed, {r0}")
-            print(f"Updated ok")
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
+                }
+                res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": variables}, headers=headers)
+                if res.status_code != 200:
+                    raise Exception(f"request failed, code={res.status_code}")
+                r0 = res.json()
+                if 'errors' in r0:
+                    raise Exception(f"request failed, {r0}")
+                print(f"Updated ok")
 
 id = j_discussion_res['data']['repository']['discussion']["id"]
 title = j_discussion_res['data']['repository']['discussion']["title"]
@@ -260,27 +292,19 @@ print(f"Labels: {', '.join(labels4print)}")
 print(f"Body:\n{body}\n")
 
 print(f"Updating......")
-messages = []
 issue_changed = False
 issue_trans_by_gpt = False
 title_trans = title
 body_trans = body
-if TRANS_MAGIC in title:
-    issue_trans_by_gpt = True
-    print(f"Title is already translated, skip")
-elif already_english(title):
+if already_english(title):
     print(f"Title is already english, skip")
 else:
-    issue_changed = True
-    issue_trans_by_gpt = True
-    messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{title}'"})
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-    )
-    title_trans = completion.choices[0].message.content.strip('\'"')
-    messages.append({"role": "assistant", "content": f"{title_trans}"})
-    print(f"Title: {title_trans}")
+    (title_trans, trans_by_gpt, real_translated) = gpt_translate(title, issue_trans_by_gpt)
+    if trans_by_gpt:
+        issue_trans_by_gpt = True
+    if real_translated:
+        issue_changed = True
+        print(f"Title: {title_trans}")
 
 if TRANS_MAGIC in body:
     issue_trans_by_gpt = True
@@ -288,27 +312,12 @@ if TRANS_MAGIC in body:
 elif already_english(body):
     print(f"Body is already english, skip")
 else:
-    issue_changed = True
-    issue_trans_by_gpt = True
-    body_segments = body.split("```")
-    final_segments_trans = []
-    for body_segment in body_segments:
-        if already_english(body_segment):
-            print(f"Body segment is already english, skip: {len(body_segment)}B")
-            final_segments_trans.append(body_segment)
-        else:
-            print(f"Translating body segment: {len(body_segment)}B")
-            messages.append({"role": "user", "content": f"{PROMPT_TRANS}\n'{body_segment}'\n{PROMPT_SANDWICH}"})
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-            )
-            body_segment_trans = completion.choices[0].message.content.strip('\'"')
-            messages.append({"role": "assistant", "content": f"{body_segment_trans[:128]}"})
-            final_segments_trans.append(body_segment_trans)
-    body_trans = "\n```\n".join(final_segments_trans)
-    body_trans = f"{body_trans}\n\n`{TRANS_MAGIC}`"
-    print(f"Body:\n{body_trans}\n")
+    (body_trans, trans_by_gpt, real_translated) = gpt_translate(body, issue_trans_by_gpt)
+    if trans_by_gpt:
+        issue_trans_by_gpt = True
+    if real_translated:
+        issue_changed = True
+        print(f"Body:\n{body_trans}\n")
 
 any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
@@ -327,6 +336,7 @@ else:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
     }
+    variables = parse_github_url(args.input)
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
         "name": variables['name'], "owner": variables['owner'], "label": LABEL_NAME
     }}, headers=headers)
@@ -383,7 +393,9 @@ else:
         "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
     }
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
-        "id": id, "title": title_trans, "body": body_trans,
+        "id": id,
+        "title": title_trans,
+        'body': f"{body_trans}\n\n`{TRANS_MAGIC}`"
     }}, headers=headers)
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
