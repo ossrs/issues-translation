@@ -11,7 +11,6 @@ if [[ -f ${WORK_DIR}/.env ]]; then source ${WORK_DIR}/.env; fi
 if [[ ! -z $OPENAI_PROXY ]]; then export OPENAI_PROXY=$OPENAI_PROXY; fi
 if [[ ! -z $OPENAI_API_KEY ]]; then export OPENAI_API_KEY=$OPENAI_API_KEY; fi
 if [[ ! -z $GITHUB_TOKEN ]]; then export GITHUB_TOKEN=$GITHUB_TOKEN; fi
-echo "OPENAI_PROXY: $OPENAI_PROXY"
 
 source venv/bin/activate
 echo "python issues.py $@"
