@@ -161,8 +161,9 @@ for index, j_res_c in enumerate(j_res):
             "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
             "X-GitHub-Api-Version": "2022-11-28",
         }
+
         res = requests.patch(c_url, headers=headers, json={
-            'body': f"{c_body_trans}\n\n`{TRANS_MAGIC}`",
+            'body': c_body_trans if TRANS_MAGIC in c_body_trans else f"{c_body_trans}\n\n`{TRANS_MAGIC}`",
         })
         if res.status_code != 200:
             raise Exception(f"request failed, code={res.status_code}")
@@ -214,6 +215,22 @@ else:
         issue_changed = True
         print(f"Body:\n{body_trans}\n")
 
+if not issue_changed:
+    print(f"Nothing changed, skip")
+else:
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    res = requests.patch(issue_api, headers=headers, json={
+        'title': title_trans,
+        'body': body_trans if TRANS_MAGIC in body_trans else f"{body_trans}\n\n`{TRANS_MAGIC}`",
+    })
+    if res.status_code != 200:
+        raise Exception(f"request failed, code={res.status_code}")
+    print(f"Updated ok")
+
 any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
     print(f"Label is already set, skip")
@@ -262,20 +279,4 @@ else:
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
     print(f"Add label ok, {LABEL_ID}({LABEL_NAME})")
-
-if not issue_changed:
-    print(f"Nothing changed, skip")
-else:
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-    res = requests.patch(issue_api, headers=headers, json={
-        'title': title_trans,
-        'body': f"{body_trans}\n\n`{TRANS_MAGIC}`"
-    })
-    if res.status_code != 200:
-        raise Exception(f"request failed, code={res.status_code}")
-    print(f"Updated ok")
 

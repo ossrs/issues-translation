@@ -209,7 +209,7 @@ for index, j_res_c in enumerate(j_res):
             '''
             variables = {
                 "id": c_id,
-                "body": f"{c_body_trans}\n\n`{TRANS_MAGIC}`"
+                'body': c_body_trans if TRANS_MAGIC in c_body_trans else f"{c_body_trans}\n\n`{TRANS_MAGIC}`",
             }
             headers = {
                 "Content-Type": "application/json",
@@ -255,7 +255,7 @@ for index, j_res_c in enumerate(j_res):
                 '''
                 variables = {
                     "id": reply_id,
-                    "body": f"{reply_body_trans}\n\n`{TRANS_MAGIC}`"
+                    'body': reply_body_trans if TRANS_MAGIC in reply_body_trans else f"{reply_body_trans}\n\n`{TRANS_MAGIC}`",
                 }
                 headers = {
                     "Content-Type": "application/json",
@@ -319,6 +319,38 @@ else:
         issue_changed = True
         print(f"Body:\n{body_trans}\n")
 
+if not issue_changed:
+    print(f"Nothing changed, skip")
+else:
+    query = '''
+        mutation ($id: ID!, $title: String!, $body: String!) {
+          updateDiscussion(
+            input: {discussionId: $id, title: $title, body: $body}
+          ) {
+            discussion {
+              number
+            }
+          }
+        }
+    '''
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
+    }
+    res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
+        "id": id,
+        "title": title_trans,
+        'body': body_trans if TRANS_MAGIC in body_trans else f"{body_trans}\n\n`{TRANS_MAGIC}`",
+    }}, headers=headers)
+    if res.status_code != 200:
+        raise Exception(f"request failed, code={res.status_code}")
+    print(f"Updated ok")
+
 any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
     print(f"Label is already set, skip")
@@ -368,36 +400,4 @@ else:
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
     print(f"Add label ok, {LABEL_ID}({LABEL_NAME})")
-
-if not issue_changed:
-    print(f"Nothing changed, skip")
-else:
-    query = '''
-        mutation ($id: ID!, $title: String!, $body: String!) {
-          updateDiscussion(
-            input: {discussionId: $id, title: $title, body: $body}
-          ) {
-            discussion {
-              number
-            }
-          }
-        }
-    '''
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN')}",
-    }
-    res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
-        "id": id,
-        "title": title_trans,
-        'body': f"{body_trans}\n\n`{TRANS_MAGIC}`"
-    }}, headers=headers)
-    if res.status_code != 200:
-        raise Exception(f"request failed, code={res.status_code}")
-    print(f"Updated ok")
 
