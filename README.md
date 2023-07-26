@@ -22,16 +22,31 @@ export OPENAI_PROXY=xxx
 
 > Note: Or save the above environment variables to `.env`.
 
+For fist run, create venv then install dependencies:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
 Translate issues to English:
 
 ```bash
-bash issues.sh --input=https://github.com/ossrs/srs/issues/3692
+python issue-trans.py --input=https://github.com/your-org/your-repository/issues/3692
+```
+
+Translate issues to English:
+
+```bash
+python pr-trans.py --input=https://github.com/your-org/your-repository/pull/3699
+python pr-rephrase.py --input=https://github.com/your-org/your-repository/pull/3699
 ```
 
 Translate discussions to English:
 
 ```bash
-bash discussions.sh --input=https://github.com/orgs/ossrs/discussions/3700
+python discussion-trans.py --input=https://github.com/your-org/your-repository/discussions/3700
 ```
 
 Once translated, this tool appends a MAGIC string to the conclusion of the text body to prevent repeated translations.

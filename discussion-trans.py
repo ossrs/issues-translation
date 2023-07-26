@@ -1,16 +1,13 @@
-from urllib.parse import urlparse
-import os, openai, argparse, requests, tools
+import os, openai, argparse, tools
+
+import dotenv
+dotenv.load_dotenv(dotenv.find_dotenv())
 
 parser = argparse.ArgumentParser(description="Translation")
-parser.add_argument("--input", type=str, required=True, help="GitHub discussion URL, for example, https://github.com/ossrs/srs/discussions/3700")
+parser.add_argument("--input", type=str, required=True, help="GitHub discussion URL, for example, https://github.com/your-org/your-repository/discussions/3700")
 parser.add_argument("--token", type=str, required=False, help="GitHub access token, for example, github_pat_xxx_yyyyyy")
 parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy, for example, x.y.z")
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
-
-PROMPT_TRANS="translate to english:"
-PROMPT_SANDWICH="Make sure to maintain the markdown structure."
-TRANS_MAGIC="TRANS_BY_GPT3"
-LABEL_NAME="TransByAI"
 
 args = parser.parse_args()
 tools.github_token_init(args.token)
@@ -41,7 +38,7 @@ for index, j_res_c in enumerate(j_res):
     print(f"Body:\n{c_body}\n")
 
     print(f"Updating......")
-    if TRANS_MAGIC in c_body:
+    if tools.TRANS_MAGIC in c_body:
         comment_trans_by_gpt = True
         print(f"Already translated, skip")
     elif tools.already_english(c_body):
@@ -63,7 +60,7 @@ for index, j_res_c in enumerate(j_res):
         print(f"Body:\n{reply_body}\n")
 
         print(f"Updating......")
-        if TRANS_MAGIC in reply_body:
+        if tools.TRANS_MAGIC in reply_body:
             comment_trans_by_gpt = True
             print(f"Already translated, skip")
         elif tools.already_english(reply_body):
@@ -82,7 +79,7 @@ body = j_discussion_res["body"]
 has_gpt_label = False
 labels4print=[]
 for label in j_discussion_res["labels"]:
-    if label["name"] == LABEL_NAME:
+    if label["name"] == tools.LABEL_TRANS_NAME:
         has_gpt_label = True
     labels4print.append(f"{label['id']}({label['name']})")
 print("")
@@ -108,7 +105,7 @@ else:
         issue_changed = True
         print(f"Title: {title_trans}")
 
-if TRANS_MAGIC in body:
+if tools.TRANS_MAGIC in body:
     issue_trans_by_gpt = True
     print(f"Body is already translated, skip")
 elif tools.already_english(body):
@@ -131,10 +128,10 @@ any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
     print(f"Label is already set, skip")
 else:
-    print(f"Add label {tools.LABEL_NAME}")
-    label_id = tools.query_label_id(discussion['owner'], discussion['name'], tools.LABEL_NAME)
-    print(f"Query LABEL_NAME={tools.LABEL_NAME}, got LABEL_ID={label_id}")
+    print(f"Add label {tools.LABEL_TRANS_NAME}")
+    label_id = tools.query_label_id(discussion['owner'], discussion['name'], tools.LABEL_TRANS_NAME)
+    print(f"Query LABEL_TRANS_NAME={tools.LABEL_TRANS_NAME}, got LABEL_ID={label_id}")
 
     tools.add_label(id, label_id)
-    print(f"Add label ok, {label_id}({tools.LABEL_NAME})")
+    print(f"Add label ok, {label_id}({tools.LABEL_TRANS_NAME})")
 

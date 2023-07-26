@@ -1,8 +1,11 @@
 import os, openai, argparse
 import tools
 
+import dotenv
+dotenv.load_dotenv(dotenv.find_dotenv())
+
 parser = argparse.ArgumentParser(description="Translation")
-parser.add_argument("--input", type=str, required=True, help="GitHub issue URL, for example, https://github.com/ossrs/srs/issues/3692")
+parser.add_argument("--input", type=str, required=True, help="GitHub PR URL, for example, https://github.com/your-org/your-repository/pull/3699")
 parser.add_argument("--token", type=str, required=False, help="GitHub access token, for example, github_pat_xxx_yyyyyy")
 parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy, for example, x.y.z")
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
@@ -12,16 +15,16 @@ tools.github_token_init(args.token)
 tools.openai_init(args.key, args.proxy)
 
 logs = []
-logs.append(f"issue: {args.input}")
+logs.append(f"PR: {args.input}")
 logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
 logs.append(f"proxy: {len(openai.api_base)}B")
 logs.append(f"key: {len(openai.api_key)}B")
 print(f"run with {', '.join(logs)}")
 
-issue = tools.parse_issue_url(args.input)
-j_issue_res = tools.query_issue(issue["owner"], issue["name"], issue["number"])
+pr = tools.parse_pullrequest_url(args.input)
+j_pr_res = tools.query_pullrequest_for_trans(pr["owner"], pr["name"], pr["number"])
 
-comments = j_issue_res['comments']
+comments = j_pr_res['comments']
 comment_trans_by_gpt = False
 for index, j_res_c in enumerate(comments):
     c_id = j_res_c["id"]
@@ -46,18 +49,66 @@ for index, j_res_c in enumerate(comments):
             else:
                 raise e
 
-id = j_issue_res["id"]
-title = j_issue_res["title"]
-body = j_issue_res["body"]
+j_reviews_res = j_pr_res['reviews']
+for index, j_res_c in enumerate(j_reviews_res):
+    c_id = j_res_c["id"]
+    c_comments = j_res_c["comments"]['totalCount']
+    c_url = j_res_c["url"]
+    c_body = j_res_c["body"]
+    print("")
+    print(f"===============Review(#{index+1})===============")
+    print(f"ID: {c_id}")
+    print(f"Comments: {c_comments}")
+    print(f"URL: {c_url}")
+    print(f"Body:\n{c_body}\n")
+
+    print(f"Updating......")
+    if tools.TRANS_MAGIC in c_body:
+        comment_trans_by_gpt = True
+        print(f"Already translated, skip")
+    elif tools.already_english(c_body):
+        print(f"Body is already english, skip")
+    else:
+        (c_body_trans, comment_trans_by_gpt, real_translated) = tools.gpt_translate(c_body, comment_trans_by_gpt)
+        if real_translated:
+            print(f"Body:\n{c_body_trans}\n")
+            tools.update_pullrequest_review(c_id, tools.wrap_magic(c_body_trans))
+            print(f"Updated ok")
+
+    for position, j_res_c_reply in enumerate(j_res_c["comments"]["nodes"]):
+        reply_id = j_res_c_reply["id"]
+        reply_url = j_res_c_reply["url"]
+        reply_body = j_res_c_reply["body"]
+        print(f"---------------ReviewComment(#{position+1})---------------")
+        print(f"ID: {reply_id}")
+        print(f"URL: {reply_url}")
+        print(f"Body:\n{reply_body}\n")
+
+        print(f"Updating......")
+        if tools.TRANS_MAGIC in reply_body:
+            comment_trans_by_gpt = True
+            print(f"Already translated, skip")
+        elif tools.already_english(reply_body):
+            print(f"Body is already english, skip")
+        else:
+            (reply_body_trans, comment_trans_by_gpt, real_translated) = tools.gpt_translate(reply_body, comment_trans_by_gpt)
+            if real_translated:
+                print(f"Body:\n{reply_body_trans}\n")
+                tools.update_pullrequest_review_comment(reply_id, tools.wrap_magic(reply_body_trans))
+                print(f"Updated ok")
+
+id = j_pr_res["id"]
+title = j_pr_res["title"]
+body = j_pr_res["body"]
 
 has_gpt_label = False
 labels4print=[]
-for label in j_issue_res["labels"]:
-    if label["name"] == tools.LABEL_NAME:
+for label in j_pr_res["labels"]:
+    if label["name"] == tools.LABEL_TRANS_NAME:
         has_gpt_label = True
     labels4print.append(f"{label['id']}({label['name']})")
 print("")
-print(f"===============ISSUE===============")
+print(f"===============PullRequest===============")
 print(f"ID: {id}")
 print(f"Url: {args.input}")
 print(f"Title: {title}")
@@ -95,17 +146,18 @@ else:
 if not issue_changed:
     print(f"Nothing changed, skip")
 else:
-    tools.update_issue(id, title_trans, tools.wrap_magic(body_trans))
+    tools.update_pullrequest(id, title_trans, tools.wrap_magic(body_trans))
     print(f"Updated ok")
 
 any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
     print(f"Label is already set, skip")
 else:
-    print(f"Add label {tools.LABEL_NAME}")
-    label_id = tools.query_label_id(issue["owner"], issue["name"], tools.LABEL_NAME)
-    print(f"Query LABEL_NAME={tools.LABEL_NAME}, got LABEL_ID={label_id}")
+    print(f"Add label {tools.LABEL_TRANS_NAME}")
+    label_id = tools.query_label_id(pr["owner"], pr["name"], tools.LABEL_TRANS_NAME)
+    print(f"Query LABEL_TRANS_NAME={tools.LABEL_TRANS_NAME}, got LABEL_ID={label_id}")
 
     tools.add_label(id, label_id)
-    print(f"Add label ok, {label_id}({tools.LABEL_NAME})")
+    print(f"Add label ok, {label_id}({tools.LABEL_TRANS_NAME})")
 
+print("\nOK\n")
