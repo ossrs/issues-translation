@@ -9,3 +9,4 @@ cd ${WORK_DIR}
 
 source venv/bin/activate
 python discussion-trans.py $@
+ret=$?; if [[ $ret != 0 ]]; then echo "Translate discussion failed"; exit $ret; fi

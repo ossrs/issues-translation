@@ -84,8 +84,9 @@ print(f"Refined: {pr_title_refined}\n")
 
 print(f"===============Refine PR Body===============")
 pr_body_refined = tools.gpt_refine_pr(pr_body)
-coauthors = "\n".join(pr_coauthors)
-pr_body_refined = f'{pr_body_refined}\n\n---------\n\n{coauthors}'
+if len(pr_coauthors) > 0:
+    coauthors = "\n".join(pr_coauthors)
+    pr_body_refined = f'{pr_body_refined}\n\n---------\n\n{coauthors}'
 print(f"Refined: {pr_body_refined}\n")
 
 print(f"===============Update PR===============")

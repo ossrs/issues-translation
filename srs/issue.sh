@@ -9,3 +9,4 @@ cd ${WORK_DIR}
 
 source venv/bin/activate
 python issue-trans.py $@
+ret=$?; if [[ $ret != 0 ]]; then echo "Translate issue failed"; exit $ret; fi
