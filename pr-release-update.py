@@ -60,12 +60,12 @@ pr_title_refined = tools.gpt_refine_pr(pr_title)
 print(f"Refined: {pr_title_refined}\n")
 
 print(f"===============Switch to PR branch===============")
-command = ["bash", "srs_switch_pr_repo.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
+command = ["bash", "auto/switch_pr_repo.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
 subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
 print(f"Switch to PR branch done.\n")
 
 print(f"===============Update Release===============")
-command = ["bash", "srs_update_version.sh", "--pr", str(pr["number"]), "--title", pr_title_refined]
+command = ["bash", "auto/update_version.sh", "--pr", str(pr["number"]), "--title", pr_title_refined]
 if args.v5:
     command.append("--v5")
 if args.v6:
@@ -85,7 +85,7 @@ tools.update_pullrequest(pr_id, pr_title_refined, pr_body)
 print(f"PR update done.\n")
 
 print(f"===============Push PR===============")
-command = ["bash", "srs_push_pr.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
+command = ["bash", "auto/push_pr.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
 subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
 print(f"Push PR done.\n")
 
