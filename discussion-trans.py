@@ -27,12 +27,14 @@ comment_trans_by_gpt = False
 j_res = j_discussion_res['comments']
 for index, j_res_c in enumerate(j_res):
     c_id = j_res_c["id"]
+    c_author = j_res_c["author"]["login"]
     c_replies = j_res_c["replies"]['totalCount']
     c_url = j_res_c["url"]
     c_body = j_res_c["body"]
     print("")
     print(f"===============Comment(#{index+1})===============")
     print(f"ID: {c_id}")
+    print(f"Author: {c_author}")
     print(f"Replies: {c_replies}")
     print(f"URL: {c_url}")
     print(f"Body:\n{c_body}\n")
@@ -52,10 +54,12 @@ for index, j_res_c in enumerate(j_res):
 
     for position, j_res_c_reply in enumerate(j_res_c["replies"]["nodes"]):
         reply_id = j_res_c_reply["id"]
+        reply_author = j_res_c_reply["author"]["login"]
         reply_url = j_res_c_reply["url"]
         reply_body = j_res_c_reply["body"]
         print(f"---------------Reply(#{position+1})---------------")
         print(f"ID: {reply_id}")
+        print(f"Author: {reply_author}")
         print(f"URL: {reply_url}")
         print(f"Body:\n{reply_body}\n")
 

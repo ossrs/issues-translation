@@ -28,11 +28,13 @@ comments = j_issue_res['comments']
 comment_trans_by_gpt = False
 for index, j_res_c in enumerate(comments):
     c_id = j_res_c["id"]
+    c_author = j_res_c["author"]["login"]
     c_url = j_res_c["url"]
     c_body = j_res_c["body"]
     print("")
     print(f"===============Comment(#{index+1})===============")
     print(f"ID: {c_id}")
+    print(f"Author: {c_author}")
     print(f"URL: {c_url}")
     print(f"Body:\n{c_body}\n")
 

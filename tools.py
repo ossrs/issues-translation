@@ -251,6 +251,9 @@ def query_issue(owner, name, issue_number):
                 totalCount
                 nodes {
                   id
+                  author {
+                    login
+                  }
                   url
                   body
                 }
@@ -420,12 +423,18 @@ def query_discussion(owner, name, discussion_number):
                 totalCount
                 nodes {
                   id
+                  author {
+                    login
+                  }
                   url
                   body
                   replies(first: 100) {
                     totalCount
                     nodes {
                       id
+                      author {
+                        login
+                      }
                       url
                       body
                     }
