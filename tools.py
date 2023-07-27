@@ -9,6 +9,7 @@ TRANS_DELIMETER = '\n\n'
 TRANS_DELIMETER_PR = '---------'
 LABEL_TRANS_NAME="TransByAI"
 LABEL_REFINED_NAME="RefinedByAI"
+LABEL_ENGLISH_NATIVE="EnglishNative"
 
 def github_token_init(token):
     if token is not None:
@@ -528,7 +529,7 @@ def update_discussion(id, title, body):
 
     return j_res['data']['updateDiscussion']['discussion']['id']
 
-def search_issues(owner, name, sort, label):
+def search_issues(owner, name, sort, labels):
     '''
     Search GitHub issues, like https://github.com/your-org/your-repository/issues?q=is:issue+sort:comments-desc+-label:TransByAI+
     :param owner: For example, ossrs
@@ -556,7 +557,7 @@ def search_issues(owner, name, sort, label):
           }
         }
     '''
-    filter = f"repo:{owner}/{name} is:issue {sort} {label}"
+    filter = f"repo:{owner}/{name} is:issue {sort} {' '.join(labels)}"
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
         "query": filter,
     }}, headers=get_graphql_headers())
