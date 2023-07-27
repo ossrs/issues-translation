@@ -5,6 +5,8 @@ PROMPT_TRANS_HEAD="Translate to english:"
 PROMPT_TRANS_SANDWICH="Make sure to maintain the markdown structure."
 PROMPT_REPHRASE_REFINE="Rephrase in a technical manner:"
 TRANS_MAGIC="TRANS_BY_GPT3"
+TRANS_DELIMETER = '\n\n'
+TRANS_DELIMETER_PR = '---------'
 LABEL_TRANS_NAME="TransByAI"
 LABEL_REFINED_NAME="RefinedByAI"
 
@@ -53,8 +55,16 @@ def split_segments(body):
     matches.append('\n'.join(current_matches))
     return matches
 
-def wrap_magic(body):
-    return body if TRANS_MAGIC in body else f"{body}\n\n`{TRANS_MAGIC}`"
+def wrap_magic(body, extra_delimeter=''):
+    if TRANS_MAGIC in body:
+        return body
+
+    magic = ''
+    if extra_delimeter != '':
+        magic = f"{TRANS_DELIMETER}{extra_delimeter}"
+    magic = f"{magic}{TRANS_DELIMETER}`{TRANS_MAGIC}`"
+
+    return f"{body}{magic}"
 
 def gpt_translate(plaintext, trans_by_gpt):
     segments = split_segments(plaintext)

@@ -8,7 +8,8 @@ echo "BASH_SOURCE=${BASH_SOURCE}, REALPATH=${REALPATH}, SCRIPT_DIR=${SCRIPT_DIR}
 cd ${WORK_DIR}
 
 SRS_HOME=~/git/srs
-echo "SRS_HOME=${SRS_HOME}"
+PR_REPO=pr-tmp
+echo "SRS_HOME=${SRS_HOME}, PR_REPO=${PR_REPO}"
 
 help=no
 remote=
@@ -50,7 +51,7 @@ cd $SRS_HOME &&
 echo "Change dir to $SRS_HOME OK"
 ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to change dir to $SRS_HOME"; exit $ret; fi
 
-REMOTE_NAME=$(git remote -v |grep "$remote" |grep push |awk '{print $1}') &&
+REMOTE_NAME=$(git remote -v |grep $PR_REPO |grep "$remote" |grep push |awk '{print $1}') &&
 echo "Get remote name $REMOTE_NAME of $remote OK"
 ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to get remote name $REMOTE_NAME of $remote"; exit $ret; fi
 

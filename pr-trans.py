@@ -146,7 +146,7 @@ else:
 if not issue_changed:
     print(f"Nothing changed, skip")
 else:
-    tools.update_pullrequest(id, title_trans, tools.wrap_magic(body_trans))
+    tools.update_pullrequest(id, title_trans, tools.wrap_magic(body_trans, tools.TRANS_DELIMETER_PR))
     print(f"Updated ok")
 
 any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt

@@ -64,16 +64,24 @@ print(f"Labels: {', '.join(labels4print)}")
 print(f"CoAuthors: {pr_coauthors}")
 print(f"Body:\n{pr_body}\n")
 
+pr_title_suffix = None
 if '. v' in pr_title:
     pr_title_suffix = pr_title.split('. v')[1]
     pr_title = pr_title.split('. v')[0]
 
-if '---------' in pr_body:
+extra_metadatas = []
+if tools.TRANS_DELIMETER_PR in pr_body:
     print(f"===============Remove CoAuthors in body===============")
-    segments = pr_body.split('---------')
-    while 'Co-authored-by' in segments[-1]:
-        segments = segments[:-1]
-    pr_body = '---------'.join(segments)
+    segments = pr_body.split(tools.TRANS_DELIMETER_PR)
+    text_segments = []
+    for segment in segments:
+        if tools.TRANS_MAGIC in segment:
+            extra_metadatas.append(segment.strip())
+        elif 'Co-authored-by' in segment:
+            continue
+        else:
+            text_segments.append(segment)
+    pr_body = tools.TRANS_DELIMETER_PR.join(text_segments)
     print(f"Body:\n{pr_body}\n")
 
 print(f"===============Refine PR Title===============")
@@ -84,9 +92,11 @@ print(f"Refined: {pr_title_refined}\n")
 
 print(f"===============Refine PR Body===============")
 pr_body_refined = tools.gpt_refine_pr(pr_body)
+for extra_metadata in extra_metadatas:
+    pr_body_refined = f'{pr_body_refined}\n\n{tools.TRANS_DELIMETER_PR}\n\n{extra_metadata}'
 if len(pr_coauthors) > 0:
     coauthors = "\n".join(pr_coauthors)
-    pr_body_refined = f'{pr_body_refined}\n\n---------\n\n{coauthors}'
+    pr_body_refined = f'{pr_body_refined}\n\n{tools.TRANS_DELIMETER_PR}\n\n{coauthors}'
 print(f"Refined: {pr_body_refined}\n")
 
 print(f"===============Update PR===============")

@@ -8,7 +8,8 @@ echo "BASH_SOURCE=${BASH_SOURCE}, REALPATH=${REALPATH}, SCRIPT_DIR=${SCRIPT_DIR}
 cd ${WORK_DIR}
 
 SRS_HOME=~/git/srs
-echo "SRS_HOME=${SRS_HOME}"
+PR_REPO=pr-tmp
+echo "SRS_HOME=${SRS_HOME}, PR_REPO=${PR_REPO}"
 
 help=no
 remote=
@@ -54,19 +55,23 @@ git checkout develop &&
 echo "Switch to branch develop OK"
 ret=$?; if [[ 0 -ne $ret ]]; then echo "Switch to branch develop failed, ret=$ret"; exit $ret; fi
 
-git remote remove tmp 2>/dev/null || echo "Remove tmp not exists, OK" &&
-REMOTE_URL="git@github.com:$remote.git" &&
-git remote add tmp $REMOTE_URL &&
-echo "Add remote tmp $REMOTE_URL OK"
-ret=$?; if [[ 0 -ne $ret ]]; then echo "Add remote tmp $REMOTE_URL failed, ret=$ret"; exit $ret; fi
+git pull &&
+echo "Pull develop OK"
+ret=$?; if [[ 0 -ne $ret ]]; then echo "Pull develop failed, ret=$ret"; exit $ret; fi
 
-git fetch tmp &&
-echo "Fetch remote tmp"
-ret=$?; if [[ 0 -ne $ret ]]; then echo "Fetch remote tmp failed, ret=$ret"; exit $ret; fi
+git remote remove $PR_REPO 2>/dev/null || echo "Remove $PR_REPO not exists, OK" &&
+REMOTE_URL="git@github.com:$remote.git" &&
+git remote add $PR_REPO $REMOTE_URL &&
+echo "Add remote $PR_REPO $REMOTE_URL OK"
+ret=$?; if [[ 0 -ne $ret ]]; then echo "Add remote $PR_REPO $REMOTE_URL failed, ret=$ret"; exit $ret; fi
+
+git fetch $PR_REPO &&
+echo "Fetch remote $PR_REPO"
+ret=$?; if [[ 0 -ne $ret ]]; then echo "Fetch remote $PR_REPO failed, ret=$ret"; exit $ret; fi
 
 TMP_BRANCH=pr-$branch &&
-git branch -D $TMP_BRANCH tmp/$branch 2>/dev/null || echo "Branch $TMP_BRANCH not exists, OK" &&
-git checkout -b $TMP_BRANCH tmp/$branch &&
+git branch -D $TMP_BRANCH $PR_REPO/$branch 2>/dev/null || echo "Branch $TMP_BRANCH not exists, OK" &&
+git checkout -b $TMP_BRANCH $PR_REPO/$branch &&
 echo "Switch to branch $TMP_BRANCH track $remote $branch OK"
 ret=$?; if [[ 0 -ne $ret ]]; then echo "Switch to branch $TMP_BRANCH track $remote $branch failed, ret=$ret"; exit $ret; fi
 
