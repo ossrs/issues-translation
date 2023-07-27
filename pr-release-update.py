@@ -96,4 +96,4 @@ print(f"Query LABEL_REFINED_NAME={tools.LABEL_REFINED_NAME}, got LABEL_ID={label
 tools.add_label(pr_id, label_id)
 print(f"Add label ok, {label_id}({tools.LABEL_REFINED_NAME})\n")
 
-print("Done.")
+print("\nOK\n")

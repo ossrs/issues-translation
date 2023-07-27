@@ -135,3 +135,5 @@ else:
     tools.add_label(id, label_id)
     print(f"Add label ok, {label_id}({tools.LABEL_TRANS_NAME})")
 
+print("\nOK\n")
+
