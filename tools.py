@@ -73,6 +73,11 @@ def gpt_translate(plaintext, trans_by_gpt):
     real_translated = False
     messages = []
     for segment in segments:
+        # Directly keep the empty line.
+        if segment.strip() == '':
+            final_trans.append(segment)
+            continue
+
         print(f"\n<<<<<<<<<<<< {segment.strip()} >>>>>>>>>>>>")
         if TRANS_MAGIC in segment:
             trans_by_gpt = True
@@ -103,18 +108,29 @@ def gpt_translate(plaintext, trans_by_gpt):
     plaintext_trans = "\n".join(final_trans).strip('\n')
     return (plaintext_trans, trans_by_gpt, real_translated)
 
-def do_gpt_translate(segment, messages):
+def do_gpt_translate(plaintext, messages):
     try:
         completion = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages,
             temperature=0,
         )
-        return (completion.choices[0].message.content.strip('\'"'), True)
+        translated = completion.choices[0].message.content.strip('\'"')
+
+        # Filter:
+        #       'safari推流rtc失败' translates to 'Safari streaming RTC failed' in English
+        # to:
+        #       Safari streaming RTC failed
+        if "' translates to '" in translated:
+            translated = translated.split("' translates to '")[1]
+            if "' in English" in translated:
+                translated = translated.split("' in English")[0]
+
+        return (translated, True)
     except openai.InvalidRequestError as e:
         if e.code == 'context_length_exceeded':
-            print(f"Warning!!! Use source text for GPT context_length_exceeded, length={len(segment)}")
-            return (segment, False)
+            print(f"Warning!!! Use source text for GPT context_length_exceeded, length={len(plaintext)}")
+            return (plaintext, False)
         raise e
 
 def gpt_refine_pr(plaintext):
