@@ -68,6 +68,16 @@ def wrap_magic(body, extra_delimeter=''):
     return f"{body}{magic}"
 
 def gpt_translate(plaintext, trans_by_gpt):
+    retry = 3
+    for i in range(retry):
+        try:
+            return do_gpt_translate(plaintext, trans_by_gpt)
+        except Exception as e:
+            if i == retry - 1:
+                raise e
+            print(f"Translate: Retry {i+1} times, ignore {e.message}")
+
+def do_gpt_translate(plaintext, trans_by_gpt):
     segments = split_segments(plaintext)
     final_trans = []
     real_translated = False
