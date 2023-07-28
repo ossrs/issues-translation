@@ -565,7 +565,7 @@ def update_discussion(id, title, body):
 
     return j_res['data']['updateDiscussion']['discussion']['id']
 
-def search_issues(owner, name, sort, labels):
+def search_issues(owner, name, sort, labels, count):
     '''
     Search GitHub issues, like https://github.com/your-org/your-repository/issues?q=is:issue+sort:comments-desc+-label:TransByAI+
     :param owner: For example, ossrs
@@ -574,11 +574,11 @@ def search_issues(owner, name, sort, labels):
     :param label: For example, -label:TransByAI
     '''
     query = '''
-        query ($query: String!) {
+        query ($query: String!, $first: Int!) {
           search(
             query: $query
             type: ISSUE
-            first: 10
+            first: $first
           ) {
             nodes {
               ... on Issue {
@@ -595,7 +595,7 @@ def search_issues(owner, name, sort, labels):
     '''
     filter = f"repo:{owner}/{name} is:issue {sort} {' '.join(labels)}"
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
-        "query": filter,
+        "query": filter, "first": count,
     }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")

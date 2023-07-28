@@ -8,6 +8,7 @@ parser.add_argument("--input", type=str, required=True, help="GitHub repository 
 parser.add_argument("--token", type=str, required=False, help="GitHub access token, for example, github_pat_xxx_yyyyyy")
 parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy, for example, x.y.z")
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
+parser.add_argument("--count", type=int, default=10, required=False, help="The count of issues, for example, 10")
 
 args = parser.parse_args()
 tools.github_token_init(args.token)
@@ -18,7 +19,11 @@ logs.append(f"repository: {args.input}")
 logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
 logs.append(f"proxy: {len(openai.api_base)}B")
 logs.append(f"key: {len(openai.api_key)}B")
+logs.append(f"count: {args.count}")
 print(f"run with {', '.join(logs)}")
+
+if args.count <= 0 or args.count > 100:
+    raise Exception("count should be in [1, 100]")
 
 repository = tools.parse_repository_url(args.input)
 j_issues = tools.search_issues(
@@ -26,6 +31,7 @@ j_issues = tools.search_issues(
     repository["name"],
     "sort:comments-desc",
     [f"-label:{tools.LABEL_TRANS_NAME}", f"-label:{tools.LABEL_ENGLISH_NATIVE}"],
+    args.count,
 )
 
 comments = 0
