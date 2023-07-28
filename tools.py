@@ -121,7 +121,7 @@ def do_gpt_translate(plaintext, messages):
         #       'safari推流rtc失败' translates to 'Safari streaming RTC failed' in English
         # to:
         #       Safari streaming RTC failed
-        if "' translates to '" in translated:
+        if f"{plaintext}' translates to '" in translated:
             translated = translated.split("' translates to '")[1]
             if "' in English" in translated:
                 translated = translated.split("' in English")[0]
