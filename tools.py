@@ -99,7 +99,7 @@ def do_gpt_translate(plaintext, trans_by_gpt):
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=messages,
-                temperature=0.3,
+                temperature=0,
             )
             segment_trans = completion.choices[0].message.content.strip('\'"')
             print(f"<<<<<<<<<<<< {segment_trans.strip()} >>>>>>>>>>>>\n")
@@ -114,7 +114,7 @@ def gpt_refine_pr(plaintext):
     completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=messages,
-        temperature=0.3,
+        temperature=0,
     )
     trans = completion.choices[0].message.content.strip('\'"')
     return trans
