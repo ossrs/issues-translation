@@ -8,4 +8,4 @@ echo "BASH_SOURCE=${BASH_SOURCE}, REALPATH=${REALPATH}, SCRIPT_DIR=${SCRIPT_DIR}
 cd ${WORK_DIR}
 
 source venv/bin/activate
-python issue-batch-trans.py $@
+python batch-trans.py $@

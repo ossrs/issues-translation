@@ -596,23 +596,40 @@ def update_discussion(id, title, body):
 
     return j_res['data']['updateDiscussion']['discussion']['id']
 
-def search_issues(owner, name, sort, labels, count):
+def search_issues(owner, name, isf, sort, labels, count):
     '''
     Search GitHub issues, like https://github.com/your-org/your-repository/issues?q=is:issue+sort:comments-desc+-label:TransByAI+
     :param owner: For example, ossrs
     :param name: For example, srs
+    :param isf: For example, is:issue is:pr is:discussion
     :param sort: For example, sort:comments-desc
     :param label: For example, -label:TransByAI
     '''
     query = '''
-        query ($query: String!, $first: Int!) {
+        query ($query: String!, $type:SearchType!, $first: Int!) {
           search(
             query: $query
-            type: ISSUE
+            type: $type
             first: $first
           ) {
             nodes {
+              ... on Discussion {
+                id
+                title
+                url
+                comments {
+                  totalCount
+                }
+              }
               ... on Issue {
+                id
+                title
+                url
+                comments {
+                  totalCount
+                }
+              }
+              ... on PullRequest {
                 id
                 title
                 url
@@ -624,9 +641,12 @@ def search_issues(owner, name, sort, labels, count):
           }
         }
     '''
-    filter = f"repo:{owner}/{name} is:issue {sort} {' '.join(labels)}"
+    search_type = 'ISSUE'
+    if 'discussion' in isf:
+        search_type = 'DISCUSSION'
+    filter = f"repo:{owner}/{name} {isf} {sort} {' '.join(labels)}"
     res = requests.post('https://api.github.com/graphql', json={"query": query, "variables": {
-        "query": filter, "first": count,
+        "query": filter, "type": search_type, "first": count
     }}, headers=get_graphql_headers())
     if res.status_code != 200:
         raise Exception(f"request failed, code={res.status_code}")
