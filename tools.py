@@ -75,7 +75,7 @@ def gpt_translate(plaintext, trans_by_gpt):
         except Exception as e:
             if i == retry - 1:
                 raise e
-            print(f"Warning!!! GPT retry {i+1} times, ignore {e.message}")
+            print(f"Warning!!! GPT retry {i+1} times, ignore {e}")
 
 def do_gpt_translate(plaintext, trans_by_gpt):
     segments = split_segments(plaintext)
