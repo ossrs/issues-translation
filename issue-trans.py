@@ -99,8 +99,14 @@ else:
 if not issue_changed:
     print(f"Nothing changed, skip")
 else:
-    tools.update_issue(id, title_trans, tools.wrap_magic(body_trans))
-    print(f"Updated ok")
+    try:
+        tools.update_issue(id, title_trans, tools.wrap_magic(body_trans))
+        print(f"Updated ok")
+    except tools.GithubGraphQLException as e:
+        if e.is_forbidden():
+            print(f"Warning!!! Ignore update issue {id} failed, forbidden, {e.errors}")
+        else:
+            raise e
 
 any_by_gpt = comment_trans_by_gpt or issue_trans_by_gpt
 if not any_by_gpt or has_gpt_label:
