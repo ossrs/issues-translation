@@ -289,6 +289,12 @@ def query_issue(owner, name, issue_number):
     total_comments = j_res['data']['repository']['issue']['comments']['totalCount']
     if total_comments > 100:
         raise Exception(f"too many comments, count={total_comments} {j_res}")
+
+    # See https://github.com/ghost
+    for c in j_res['data']['repository']['issue']['comments']['nodes']:
+        if c['author'] is None:
+            c['author'] = {'login': 'ghost'}
+
     return {
         'id': j_res['data']['repository']['issue']['id'],
         'title': j_res['data']['repository']['issue']['title'],
@@ -486,6 +492,15 @@ def query_discussion(owner, name, discussion_number):
         totalCount = j_node["replies"]["totalCount"]
         if totalCount > 100:
             raise Exception(f"comments[{index}].replies.totalCount > 100, {totalCount} of {j_node}")
+
+    # See https://github.com/ghost
+    for c in j_res['data']['repository']['discussion']['comments']['nodes']:
+        if c['author'] is None:
+            c['author'] = {'login': 'ghost'}
+        for r in c['replies']['nodes']:
+            if r['author'] is None:
+                r['author'] = {'login': 'ghost'}
+
     return {
         "id": j_res['data']['repository']['discussion']['id'],
         "title": j_res['data']['repository']['discussion']['title'],
@@ -653,6 +668,11 @@ def query_pullrequest(owner, name, pr_number):
     total_participants = j_res['data']['repository']['pullRequest']['participants']['totalCount']
     if total_participants > 100:
         raise Exception(f"too many participants, count={total_participants} {j_res}")
+
+    # See https://github.com/ghost
+    for c in j_res['data']['repository']['pullRequest']['participants']['nodes']:
+        if c['author'] is None:
+            c['author'] = {'login': 'ghost'}
 
     return {
         "id": j_res['data']['repository']['pullRequest']['id'],
