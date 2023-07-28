@@ -1,5 +1,4 @@
-import os, openai, argparse
-import tools
+import os, openai, argparse, tools
 
 import dotenv
 dotenv.load_dotenv(dotenv.find_dotenv())

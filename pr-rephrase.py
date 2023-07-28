@@ -1,5 +1,4 @@
-import os, openai, argparse, subprocess, sys
-import tools
+import os, openai, argparse, tools
 
 import dotenv
 dotenv.load_dotenv(dotenv.find_dotenv())

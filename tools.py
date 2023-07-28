@@ -83,15 +83,15 @@ def do_gpt_translate(plaintext, trans_by_gpt):
     real_translated = False
     messages = []
     for segment in segments:
+        print(f"\n<<<<<<<<<<<< {segment.strip()} >>>>>>>>>>>>")
         if TRANS_MAGIC in segment:
             trans_by_gpt = True
-            print(f"Translate: Body segment is already translated, skip")
+            print(f"<<<<<<<<<<<< Already translated, skip >>>>>>>>>>>>\n")
             final_trans.append(segment)
         elif already_english(segment):
-            print(f"Translate: Body segment is already english, skip")
+            print(f"<<<<<<<<<<<< Already English, skip >>>>>>>>>>>>\n")
             final_trans.append(segment)
         else:
-            print(f"\n<<<<<<<<<<<< {segment.strip()} >>>>>>>>>>>>")
             real_translated = trans_by_gpt = True
             messages.append({"role": "user", "content": f"{PROMPT_TRANS_HEAD}\n'{segment}'\n{PROMPT_TRANS_SANDWICH}"})
             if len(messages) > 3:
@@ -169,7 +169,7 @@ class GithubGraphQLException(Exception):
     def is_forbidden(self):
         if self.errors is not None and len(self.errors) > 0:
             for error in self.errors:
-                if error['type'] == 'FORBIDDEN':
+                if 'type' in error and error['type'] == 'FORBIDDEN':
                     return True
         return False
 
