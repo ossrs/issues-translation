@@ -91,6 +91,7 @@ def do_gpt_translate(plaintext, trans_by_gpt):
             print(f"Translate: Body segment is already english, skip")
             final_trans.append(segment)
         else:
+            print(f"\n<<<<<<<<<<<< {segment.strip()} >>>>>>>>>>>>")
             real_translated = trans_by_gpt = True
             messages.append({"role": "user", "content": f"{PROMPT_TRANS_HEAD}\n'{segment}'\n{PROMPT_TRANS_SANDWICH}"})
             if len(messages) > 3:
@@ -101,6 +102,7 @@ def do_gpt_translate(plaintext, trans_by_gpt):
                 temperature=0.3,
             )
             segment_trans = completion.choices[0].message.content.strip('\'"')
+            print(f"<<<<<<<<<<<< {segment_trans.strip()} >>>>>>>>>>>>\n")
             messages.append({"role": "assistant", "content": segment_trans})
             final_trans.append(segment_trans)
     plaintext_trans = "\n".join(final_trans).strip('\n')
