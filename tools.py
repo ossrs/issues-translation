@@ -68,16 +68,6 @@ def wrap_magic(body, extra_delimeter=''):
     return f"{body}{magic}"
 
 def gpt_translate(plaintext, trans_by_gpt):
-    retry = 3
-    for i in range(retry):
-        try:
-            return do_gpt_translate(plaintext, trans_by_gpt)
-        except Exception as e:
-            if i == retry - 1:
-                raise e
-            print(f"Warning!!! GPT retry {i+1} times, ignore {e}")
-
-def do_gpt_translate(plaintext, trans_by_gpt):
     segments = split_segments(plaintext)
     final_trans = []
     real_translated = False
@@ -96,17 +86,36 @@ def do_gpt_translate(plaintext, trans_by_gpt):
             messages.append({"role": "user", "content": f"{PROMPT_TRANS_HEAD}\n'{segment}'\n{PROMPT_TRANS_SANDWICH}"})
             if len(messages) > 3:
                 messages = messages[-3:]
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-                temperature=0,
-            )
-            segment_trans = completion.choices[0].message.content.strip('\'"')
+            retry = 3
+            add_to_messages = False
+            for i in range(retry):
+                try:
+                    (segment_trans, add_to_messages) = do_gpt_translate(segment, messages)
+                    break
+                except Exception as e:
+                    if i == retry - 1:
+                        raise e
+                    print(f"Warning!!! GPT retry {i+1} times, ignore {e}")
             print(f"<<<<<<<<<<<< {segment_trans.strip()} >>>>>>>>>>>>\n")
-            messages.append({"role": "assistant", "content": segment_trans})
+            if add_to_messages:
+                messages.append({"role": "assistant", "content": segment_trans})
             final_trans.append(segment_trans)
     plaintext_trans = "\n".join(final_trans).strip('\n')
     return (plaintext_trans, trans_by_gpt, real_translated)
+
+def do_gpt_translate(segment, messages):
+    try:
+        completion = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0,
+        )
+        return (completion.choices[0].message.content.strip('\'"'), True)
+    except openai.InvalidRequestError as e:
+        if e.code == 'context_length_exceeded':
+            print(f"Warning!!! Use source text for GPT context_length_exceeded, length={len(segment)}")
+            return (segment, False)
+        raise e
 
 def gpt_refine_pr(plaintext):
     messages = []
