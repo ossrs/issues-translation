@@ -9,28 +9,32 @@ Use AI/GPT to translate GitHub issues into English.
 Use docker to translate issue:
 
 ```bash
-docker run --rm -it -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx ossrs/issues-translation:v1 \
+docker run -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx \
+  --rm -it ossrs/issues-translation:v1 \
   python issue-trans.py --input https://github.com/your-org/your-repository/issues/3692
 ```
 
 Use docker to translate discussion:
 
 ```bash
-docker run --rm -it -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx ossrs/issues-translation:v1 \
+docker run -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx \
+  --rm -it ossrs/issues-translation:v1 \
   python discussion-trans.py --input https://github.com/your-org/your-repository/discussions/3700
 ```
 
 Use docker to translate PR:
 
 ```bash
-docker run --rm -it -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx ossrs/issues-translation:v1 \
+docker run -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx \
+  --rm -it ossrs/issues-translation:v1 \
   python pr-trans.py --input https://github.com/your-org/your-repository/pull/3699
 ```
 
 Run GitHub webhooks server:
 
 ```bash
-docker run --rm -it -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx ossrs/issues-translation:v1 \
+docker run -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx \
+ --rm -it -p 2023:2023 ossrs/issues-translation:v1 \
   python server.py --listen 2023 --forward https://discord.com/xxx
 ```
 
