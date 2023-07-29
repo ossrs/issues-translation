@@ -27,6 +27,13 @@ docker run --rm -it -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xx
   python pr-trans.py --input https://github.com/your-org/your-repository/pull/3699
 ```
 
+Run GitHub webhooks server:
+
+```bash
+docker run --rm -it -e GITHUB_TOKEN=xxx -e OPENAI_API_KEY=xxx -e OPENAI_PROXY=xxx ossrs/issues-translation:v1 \
+  python server.py --listen 2023 --forward https://discord.com/xxx
+```
+
 Also you can use `--env-file=$(pwd)/.env` to load the environment variables from file `.env`.
 
 ## Developer
