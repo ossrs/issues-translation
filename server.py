@@ -24,24 +24,145 @@ logs.append(f"forward: {args.forward}")
 print(f"run with {', '.join(logs)}")
 
 def handle_request(j_req, event, delivery, headers):
-    print(f"Thread: {delivery}: Got a {event} event, {j_req}")
+    action = j_req['action'] if 'action' in j_req else None
+    print(f"Thread: {delivery}: Got a event {event} {action}, {headers}")
 
     do_forward = False
     if event == 'ping':
         print(f"Thread: {delivery}: Got a test ping")
     elif event == 'issues':
-        do_forward = True
-        title = j_req['issue']['title']
-        number = j_req['issue']['number']
-        url = j_req['issue']['html_url']
-        print(f"{delivery}: Got an issue #{number} {url} {title}")
-        command = ["bash", "srs/issue.sh", "--input", url]
-        subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
-        # Get the translated issue.
-        issue = tools.parse_issue_url(url)
-        trans = tools.query_issue(issue['owner'], issue['name'], issue['number'])
-        j_req['issue']['title'] = trans['title']
-        j_req['issue']['body'] = trans['body']
+        if action != 'opened':
+            print(f"Thread: {delivery}: Ignore action {action}")
+        else:
+            do_forward = True
+            title = j_req['issue']['title']
+            number = j_req['issue']['number']
+            html_url = j_req['issue']['html_url']
+            print(f"Thread: {delivery}: Got an issue #{number} {html_url} {title}")
+            command = ["bash", "srs/issue.sh", "--input", html_url]
+            subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
+            parsed = tools.parse_issue_url(html_url)
+            trans = tools.query_issue(parsed['owner'], parsed['name'], parsed['number'])
+            j_req['issue']['title'] = trans['title']
+            j_req['issue']['body'] = trans['body']
+    elif event == 'issue_comment':
+        if action != 'created':
+            print(f"Thread: {delivery}: Ignore action {action}")
+        else:
+            do_forward = True
+            html_url = j_req['comment']['html_url']
+            issue_url = j_req['issue']['html_url']
+            node_id = j_req['comment']['node_id']
+            body = j_req['comment']['body']
+            print(f"Thread: {delivery}: Got a comment {html_url} of {issue_url} {node_id} {body}")
+            (body_trans, body_trans_by_gpt, real_translated) = tools.gpt_translate(body, False)
+            if real_translated:
+                print(f"Thread: {delivery}: Body:\n{body_trans}\n")
+                try:
+                    tools.update_issue_comment(node_id, tools.wrap_magic(body_trans))
+                    print(f"Thread: {delivery}: Updated ok")
+                except tools.GithubGraphQLException as e:
+                    if e.is_forbidden():
+                        print(f"Thread: {delivery}: Warning!!! Ignore update comment {node_id} failed, forbidden, {e.errors}")
+                    else:
+                        raise e
+            j_req['comment']['body'] = body_trans
+    elif event == 'discussion':
+        if action != 'created':
+            print(f"Thread: {delivery}: Ignore action {action}")
+        else:
+            do_forward = True
+            html_url = j_req['discussion']['html_url']
+            number = j_req['discussion']['number']
+            title = j_req['discussion']['title']
+            print(f"Thread: {delivery}: Got a discussion #{number} {html_url} {title}")
+            command = ["bash", "srs/discussion.sh", "--input", html_url]
+            subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
+            parsed = tools.parse_discussion_url(html_url)
+            trans = tools.query_discussion(parsed['owner'], parsed['name'], parsed['number'])
+            j_req['discussion']['title'] = trans['title']
+            j_req['discussion']['body'] = trans['body']
+    elif event == 'discussion_comment':
+        if action != 'created':
+            print(f"Thread: {delivery}: Ignore action {action}")
+        else:
+            do_forward = True
+            html_url = j_req['comment']['html_url']
+            discussion_url = j_req['discussion']['html_url']
+            node_id = j_req['comment']['node_id']
+            body = j_req['comment']['body']
+            print(f"Thread: {delivery}: Got a comment {html_url} of {discussion_url} {node_id} {body}")
+            (body_trans, body_trans_by_gpt, real_translated) = tools.gpt_translate(body, False)
+            if real_translated:
+                print(f"Thread: {delivery}: Body:\n{body_trans}\n")
+                try:
+                    tools.update_discussion_comment(node_id, tools.wrap_magic(body_trans))
+                    print(f"Thread: {delivery}: Updated ok")
+                except tools.GithubGraphQLException as e:
+                    if e.is_forbidden():
+                        print(f"Thread: {delivery}: Warning!!! Ignore update comment {node_id} failed, forbidden, {e.errors}")
+                    else:
+                        raise e
+            j_req['comment']['body'] = body_trans
+    elif event == 'pull_request':
+        if action != 'opened':
+            print(f"Thread: {delivery}: Ignore action {action}")
+        else:
+            do_forward = True
+            html_url = j_req['pull_request']['html_url']
+            number = j_req['pull_request']['number']
+            title = j_req['pull_request']['title']
+            print(f"Thread: {delivery}: Got a pull request #{number} {html_url} {title}")
+            command = ["python", "pr-trans.py", "--input", html_url]
+            subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
+            parsed = tools.parse_pullrequest_url(html_url)
+            trans = tools.query_pullrequest(parsed['owner'], parsed['name'], parsed['number'])
+            j_req['pull_request']['title'] = trans['title']
+            j_req['pull_request']['body'] = trans['body']
+    elif event == 'pull_request_review':
+        if action != 'submitted':
+            print(f"Thread: {delivery}: Ignore action {action}")
+        else:
+            do_forward = True
+            html_url = j_req['review']['html_url']
+            pull_request_url = j_req['pull_request']['html_url']
+            node_id = j_req['review']['node_id']
+            body = j_req['review']['body']
+            print(f"Thread: {delivery}: Got a PR review {html_url} of {pull_request_url} {node_id} {body}")
+            (body_trans, body_trans_by_gpt, real_translated) = tools.gpt_translate(body, False)
+            if real_translated:
+                print(f"Thread: {delivery}: Body:\n{body_trans}\n")
+                try:
+                    tools.update_pullrequest_review(node_id, tools.wrap_magic(body_trans))
+                    print(f"Thread: {delivery}: Updated ok")
+                except tools.GithubGraphQLException as e:
+                    if e.is_forbidden():
+                        print(f"Thread: {delivery}: Warning!!! Ignore update PR review {node_id} failed, forbidden, {e.errors}")
+                    else:
+                        raise e
+            j_req['review']['body'] = body_trans
+    elif event == 'pull_request_review_comment':
+        if action != 'created':
+            print(f"Thread: {delivery}: Ignore action {action}")
+        else:
+            do_forward = True
+            html_url = j_req['comment']['html_url']
+            pull_request_url = j_req['pull_request']['html_url']
+            node_id = j_req['comment']['node_id']
+            body = j_req['comment']['body']
+            print(f"Thread: {delivery}: Got a PR Review comment {html_url} of {pull_request_url} {node_id} {body}")
+            (body_trans, body_trans_by_gpt, real_translated) = tools.gpt_translate(body, False)
+            if real_translated:
+                print(f"Thread: {delivery}: Body:\n{body_trans}\n")
+                try:
+                    tools.update_pullrequest_review_comment(node_id, tools.wrap_magic(body_trans))
+                    print(f"Thread: {delivery}: Updated ok")
+                except tools.GithubGraphQLException as e:
+                    if e.is_forbidden():
+                        print(f"Thread: {delivery}: Warning!!! Ignore update PR Review comment {node_id} failed, forbidden, {e.errors}")
+                    else:
+                        raise e
+            j_req['comment']['body'] = body_trans
 
     if do_forward:
         # Without any Host set.
@@ -92,14 +213,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         for key in self.headers.keys():
             headers[key] = self.headers.get(key)
 
-        if event == 'ping':
-            print(f"{delivery}: Got a test ping")
-        elif event == 'issues':
-            title = j_req['issue']['title']
-            number = j_req['issue']['number']
-            url = j_req['issue']['html_url']
-            print(f"{delivery}: Got an issue #{number} {url} {title}")
-
+        print(f"{delivery}: Start a thread to handle {event}")
         thread = threading.Thread(target=handle_request, args=(j_req, event, delivery, headers))
         thread.start()
 

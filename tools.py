@@ -325,7 +325,7 @@ def query_issue(owner, name, issue_number):
 
     # See https://github.com/ghost
     for c in j_res['data']['repository']['issue']['comments']['nodes']:
-        if c['author'] is None:
+        if 'author' not in c or c['author'] is None:
             c['author'] = {'login': 'ghost'}
 
     return {
@@ -528,7 +528,7 @@ def query_discussion(owner, name, discussion_number):
 
     # See https://github.com/ghost
     for c in j_res['data']['repository']['discussion']['comments']['nodes']:
-        if c['author'] is None:
+        if 'author' not in c or c['author'] is None:
             c['author'] = {'login': 'ghost'}
         for r in c['replies']['nodes']:
             if r['author'] is None:
@@ -724,7 +724,7 @@ def query_pullrequest(owner, name, pr_number):
 
     # See https://github.com/ghost
     for c in j_res['data']['repository']['pullRequest']['participants']['nodes']:
-        if c['author'] is None:
+        if 'author' not in c or c['author'] is None:
             c['author'] = {'login': 'ghost'}
 
     return {
@@ -739,7 +739,7 @@ def query_pullrequest(owner, name, pr_number):
         "labels": j_res['data']['repository']['pullRequest']["labels"]["nodes"],
     }
 
-def query_pullrequest_for_trans(owner, name, pr_number):
+def query_pullrequest_all_in_one(owner, name, pr_number):
     query = '''
         query ($name: String!, $owner: String!, $number: Int!) {
           repository(name: $name, owner: $owner) {

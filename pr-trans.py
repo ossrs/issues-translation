@@ -21,7 +21,7 @@ logs.append(f"key: {len(openai.api_key)}B")
 print(f"run with {', '.join(logs)}")
 
 pr = tools.parse_pullrequest_url(args.input)
-j_pr_res = tools.query_pullrequest_for_trans(pr["owner"], pr["name"], pr["number"])
+j_pr_res = tools.query_pullrequest_all_in_one(pr["owner"], pr["name"], pr["number"])
 
 comments = j_pr_res['comments']
 comment_trans_by_gpt = False

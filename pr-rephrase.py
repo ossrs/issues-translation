@@ -34,6 +34,9 @@ pr_head_ref_name = j_pr["headRef"]["name"]
 pr_coauthors = []
 for node in j_pr["participants"]:
     login = node["login"]
+    if login == 'ghost':
+        continue
+
     login_env = f"USER_{login.lower().replace('-', '_')}"
     email = os.getenv(login_env)
     if login == pr_author:
