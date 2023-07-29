@@ -55,10 +55,13 @@ title = j_issue_res["title"]
 body = j_issue_res["body"]
 
 has_gpt_label = False
+has_en_native_label = False
 labels4print=[]
 for label in j_issue_res["labels"]:
     if label["name"] == tools.LABEL_TRANS_NAME:
         has_gpt_label = True
+    if label["name"] == tools.LABEL_ENGLISH_NATIVE:
+        has_en_native_label = True
     labels4print.append(f"{label['id']}({label['name']})")
 print("")
 print(f"===============ISSUE===============")
@@ -118,6 +121,14 @@ else:
 
     tools.add_label(id, label_id)
     print(f"Add label ok, {label_id}({tools.LABEL_TRANS_NAME})")
+
+if not any_by_gpt and not has_gpt_label and not has_en_native_label:
+    print(f"Add label {tools.LABEL_ENGLISH_NATIVE}")
+    label_id = tools.query_label_id(issue["owner"], issue["name"], tools.LABEL_ENGLISH_NATIVE)
+    print(f"Query LABEL_ENGLISH_NATIVE={tools.LABEL_ENGLISH_NATIVE}, got LABEL_ID={label_id}")
+
+    tools.add_label(id, label_id)
+    print(f"Add label ok, {label_id}({tools.LABEL_ENGLISH_NATIVE})")
 
 print("\nOK\n")
 
