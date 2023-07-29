@@ -27,7 +27,7 @@ if [[ "$help" == yes ]]; then
 fi
 
 # We increase version from the platform-v* base.
-RELEASE=$(git describe --tags --abbrev=0 --match v* 2>/dev/null || echo "v1.0.-1") &&
+RELEASE=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.-1") &&
 REVISION=$(echo $RELEASE|awk -F . '{print $3}')
 if [[ $? -ne 0 ]]; then echo "Release failed"; exit 1; fi
 
