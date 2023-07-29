@@ -8,5 +8,4 @@ echo "BASH_SOURCE=${BASH_SOURCE}, REALPATH=${REALPATH}, SCRIPT_DIR=${SCRIPT_DIR}
 cd ${WORK_DIR}
 
 . venv/bin/activate
-python issue-trans.py $@
-ret=$?; if [[ $ret != 0 ]]; then echo "Translate issue failed"; exit $ret; fi
+exec "$@"

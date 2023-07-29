@@ -7,5 +7,5 @@ WORK_DIR=$(cd $(dirname ${REALPATH})/.. && pwd)
 echo "BASH_SOURCE=${BASH_SOURCE}, REALPATH=${REALPATH}, SCRIPT_DIR=${SCRIPT_DIR}, WORK_DIR=${WORK_DIR}"
 cd ${WORK_DIR}
 
-source venv/bin/activate
+. venv/bin/activate
 python batch-trans.py $@

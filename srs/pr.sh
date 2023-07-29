@@ -51,7 +51,7 @@ if [[ -z $v5 && -z $v6 ]]; then
     exit 1
 fi
 
-source venv/bin/activate
+. venv/bin/activate
 ret=$?; if [[ $ret != 0 ]]; then echo "Activate venv failed"; exit $ret; fi
 
 PARAMS="--input $input"

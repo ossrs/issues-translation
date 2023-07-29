@@ -7,6 +7,6 @@ WORK_DIR=$(cd $(dirname ${REALPATH})/.. && pwd)
 echo "BASH_SOURCE=${BASH_SOURCE}, REALPATH=${REALPATH}, SCRIPT_DIR=${SCRIPT_DIR}, WORK_DIR=${WORK_DIR}"
 cd ${WORK_DIR}
 
-source venv/bin/activate
+. venv/bin/activate
 python discussion-trans.py $@
 ret=$?; if [[ $ret != 0 ]]; then echo "Translate discussion failed"; exit $ret; fi
