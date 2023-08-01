@@ -15,6 +15,8 @@ args = parser.parse_args()
 tools.github_token_init(args.token)
 tools.openai_init(args.key, args.proxy)
 
+IGNORE_LOGIN='dependabot'
+
 logs = []
 logs.append(f"listen: {args.listen}")
 logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
@@ -26,6 +28,12 @@ print(f"run with {', '.join(logs)}")
 def handle_request(j_req, event, delivery, headers):
     action = j_req['action'] if 'action' in j_req else None
     print(f"Thread: {delivery}: Got a event {event} {action}, {headers}")
+
+    if 'sender' in j_req and 'login' in j_req['sender']:
+        sender = j_req['sender']['login']
+        if IGNORE_LOGIN in sender:
+            print(f"Thread: {delivery}: Ignore sender {sender}")
+            return
 
     do_forward = False
     if event == 'ping':
