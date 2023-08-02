@@ -1,4 +1,4 @@
-import os, openai, argparse, tools
+import os, openai, argparse, tools, ast
 
 import dotenv
 dotenv.load_dotenv(dotenv.find_dotenv())
@@ -8,6 +8,8 @@ parser.add_argument("--input", type=str, required=True, help="GitHub issue URL, 
 parser.add_argument("--token", type=str, required=False, help="GitHub access token, for example, github_pat_xxx_yyyyyy")
 parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy, for example, x.y.z")
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
+parser.add_argument("--title", type=ast.literal_eval, default=True, required=False, help="Whether rephrase title, True(default) or False")
+parser.add_argument("--body", type=ast.literal_eval, default=True, required=False, help="Whether rephrase body, True(default) or False")
 
 args = parser.parse_args()
 tools.github_token_init(args.token)
@@ -18,7 +20,13 @@ logs.append(f"issue: {args.input}")
 logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
 logs.append(f"proxy: {len(openai.api_base)}B")
 logs.append(f"key: {len(openai.api_key)}B")
+logs.append(f"title: {args.title}")
+logs.append(f"body: {args.body}")
 print(f"run with {', '.join(logs)}")
+
+if not args.title and not args.body:
+    print("Nothing to do")
+    exit(0)
 
 pr = tools.parse_pullrequest_url(args.input)
 j_pr = tools.query_pullrequest(pr["owner"], pr["name"], pr["number"])
@@ -87,19 +95,27 @@ if tools.TRANS_DELIMETER_PR in pr_body:
     print(f"Body:\n{pr_body}\n")
 
 print(f"===============Refine PR Title===============")
-pr_title_refined = tools.gpt_refine_pr(pr_title)
-if pr_title_suffix is not None:
-    pr_title_refined = f'{pr_title_refined.strip(".")}. v{pr_title_suffix}'
-print(f"Refined: {pr_title_refined}\n")
+pr_title_refined = pr_title
+if not args.title:
+    print(f"Keep title: {pr_title_refined}\n")
+else:
+    pr_title_refined = tools.gpt_refine_pr(pr_title)
+    if pr_title_suffix is not None:
+        pr_title_refined = f'{pr_title_refined.strip(".")}. v{pr_title_suffix}'
+    print(f"Refined: {pr_title_refined}\n")
 
 print(f"===============Refine PR Body===============")
-pr_body_refined = tools.gpt_refine_pr(pr_body)
-for extra_metadata in extra_metadatas:
-    pr_body_refined = f'{pr_body_refined}\n\n{tools.TRANS_DELIMETER_PR}\n\n{extra_metadata}'
-if len(pr_coauthors) > 0:
-    coauthors = "\n".join(pr_coauthors)
-    pr_body_refined = f'{pr_body_refined}\n\n{tools.TRANS_DELIMETER_PR}\n\n{coauthors}'
-print(f"Refined: {pr_body_refined}\n")
+pr_body_refined = pr_body
+if not args.body:
+    print(f"Keep body: {pr_body_refined}\n")
+else:
+    pr_body_refined = tools.gpt_refine_pr(pr_body)
+    for extra_metadata in extra_metadatas:
+        pr_body_refined = f'{pr_body_refined}\n\n{tools.TRANS_DELIMETER_PR}\n\n{extra_metadata}'
+    if len(pr_coauthors) > 0:
+        coauthors = "\n".join(pr_coauthors)
+        pr_body_refined = f'{pr_body_refined}\n\n{tools.TRANS_DELIMETER_PR}\n\n{coauthors}'
+    print(f"Refined: {pr_body_refined}\n")
 
 print(f"===============Update PR===============")
 tools.update_pullrequest(pr_id, pr_title_refined, pr_body_refined)
