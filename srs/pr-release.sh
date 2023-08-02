@@ -8,6 +8,5 @@ echo "BASH_SOURCE=${BASH_SOURCE}, REALPATH=${REALPATH}, SCRIPT_DIR=${SCRIPT_DIR}
 cd ${WORK_DIR}
 
 . venv/bin/activate
-python pr-rephrase.py $@
-ret=$?; if [[ $ret != 0 ]]; then echo "Rephrase pr failed"; exit $ret; fi
-
+python pr-release-update.py $@
+ret=$?; if [[ $ret != 0 ]]; then echo "Update release of pr failed"; exit $ret; fi
