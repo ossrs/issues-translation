@@ -38,6 +38,20 @@ pr_base_ref_repo = j_pr["baseRef"]["repository"]["owner"]["login"] + "/" + j_pr[
 pr_base_ref_name = j_pr["baseRef"]["name"]
 pr_head_ref_repo = j_pr["headRef"]["repository"]["owner"]["login"] + "/" + j_pr["headRef"]["repository"]["name"]
 pr_head_ref_name = j_pr["headRef"]["name"]
+pr_coauthors = []
+for node in j_pr["participants"]:
+    login = node["login"]
+    if login == 'ghost':
+        continue
+
+    login_env = f"USER_{login.lower().replace('-', '_')}"
+    email = os.getenv(login_env)
+    if login == pr_author:
+        continue
+    if email is None:
+        print(f"Warning: {login_env} is not set, for example: \nUSER_xiaozhihong='john <hondaxiao@tencent.com>'")
+        continue
+    pr_coauthors.append(f"Co-authored-by: {email}")
 print("")
 
 has_gpt_label = False
@@ -49,14 +63,27 @@ print(f"URL: {args.input}")
 print(f"Author: {pr_author}")
 print(f"Base Ref: {pr_base_ref_repo} {pr_base_ref_name}")
 print(f"Head Ref: {pr_head_ref_repo} {pr_head_ref_name}")
+print(f"CoAuthors: {pr_coauthors}")
 print(f"Body:\n{pr_body}\n")
 
+pr_title_refined = pr_title
 if '. v' in pr_title:
-    pr_title = pr_title.split('. v')[0]
+    pr_title_refined = pr_title.split('. v')[0]
 
-print(f"===============Refine PR Title===============")
-pr_title_refined = tools.gpt_refine_pr(pr_title)
-print(f"Refined: {pr_title_refined}\n")
+extra_metadatas = []
+if tools.TRANS_DELIMETER_PR in pr_body:
+    print(f"===============Remove CoAuthors in body===============")
+    segments = pr_body.split(tools.TRANS_DELIMETER_PR)
+    text_segments = []
+    for segment in segments:
+        if tools.TRANS_MAGIC in segment:
+            extra_metadatas.append(segment.strip())
+        elif 'Co-authored-by' in segment:
+            continue
+        else:
+            text_segments.append(segment)
+    pr_body = tools.TRANS_DELIMETER_PR.join(text_segments)
+    print(f"Body:\n{pr_body}\n")
 
 print(f"===============Switch to PR branch===============")
 command = ["bash", "auto/switch_pr_repo.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
@@ -80,8 +107,17 @@ version_message = release_message.split('Update release to ')[1].strip()
 pr_title_refined = f"{pr_title_refined.strip('.')}. {version_message}"
 
 print(f"===============Update PR===============")
-tools.update_pullrequest(pr_id, pr_title_refined, pr_body)
-print(f"PR update done.\n")
+pr_body_refined = pr_body
+for extra_metadata in extra_metadatas:
+    pr_body_refined = f'{pr_body_refined}\n\n{tools.TRANS_DELIMETER_PR}\n\n{extra_metadata}'
+if len(pr_coauthors) > 0:
+    coauthors = "\n".join(pr_coauthors)
+    pr_body_refined = f'{pr_body_refined}\n\n{tools.TRANS_DELIMETER_PR}\n\n{coauthors}'
+if pr_title_refined == pr_title and pr_body_refined == pr_body:
+    print("No need to update PR title and body.\n")
+else:
+    tools.update_pullrequest(pr_id, pr_title_refined, pr_body_refined)
+    print(f"PR update done.\n")
 
 print(f"===============Push PR===============")
 command = ["bash", "auto/push_pr.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]

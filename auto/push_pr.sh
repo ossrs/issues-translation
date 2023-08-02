@@ -59,6 +59,7 @@ git push $REMOTE_NAME pr-${branch}:${branch} &&
 echo "Push to $REMOTE_NAME pr-${branch}:${branch} OK"
 ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to push to $REMOTE_NAME pr-${branch}:${branch}"; exit $ret; fi
 
+git checkout develop &&
 git branch -D pr-${branch} &&
 echo "Delete local branch pr-${branch} OK"
 ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to delete local branch pr-${branch}"; exit $ret; fi
