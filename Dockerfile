@@ -12,4 +12,4 @@ RUN rm -rf venv .env .git .idea && \
 
 EXPOSE 2023
 
-ENTRYPOINT ["/usr/local/issues-translation/auto/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/issues-translation/scripts/entrypoint.sh"]

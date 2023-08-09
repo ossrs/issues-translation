@@ -86,12 +86,12 @@ if tools.TRANS_DELIMETER_PR in pr_body:
     print(f"Body:\n{pr_body}\n")
 
 print(f"===============Switch to PR branch===============")
-command = ["bash", "auto/switch_pr_repo.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
+command = ["bash", "scripts/switch_pr_repo.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
 subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
 print(f"Switch to PR branch done.\n")
 
 print(f"===============Update Release===============")
-command = ["bash", "auto/update_version.sh", "--pr", str(pr["number"]), "--title", pr_title_refined]
+command = ["bash", "scripts/update_version.sh", "--pr", str(pr["number"]), "--title", pr_title_refined]
 if args.v5:
     command.append("--v5")
 if args.v6:
@@ -120,7 +120,7 @@ else:
     print(f"PR update done.\n")
 
 print(f"===============Push PR===============")
-command = ["bash", "auto/push_pr.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
+command = ["bash", "scripts/push_pr.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
 subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
 print(f"Push PR done.\n")
 
