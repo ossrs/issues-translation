@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 PROMPT_TRANS_HEAD="Translate to english:"
 PROMPT_TRANS_SANDWICH="Make sure to maintain the markdown structure."
 PROMPT_REPHRASE_REFINE="Rephrase in a technical manner:"
-TRANS_MAGIC="TRANS_BY_GPT3"
+TRANS_MAGIC="TRANS_BY_GPT4"
 TRANS_DELIMETER = '\n\n'
 TRANS_DELIMETER_PR = '---------'
 LABEL_TRANS_NAME="TransByAI"
