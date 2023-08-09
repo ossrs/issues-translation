@@ -111,7 +111,7 @@ def gpt_translate(plaintext, trans_by_gpt):
 def do_gpt_translate(plaintext, messages):
     try:
         completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             messages=messages,
             temperature=0,
         )
@@ -137,7 +137,7 @@ def gpt_refine_pr(plaintext):
     messages = []
     messages.append({"role": "user", "content": f"{PROMPT_REPHRASE_REFINE}\n'{plaintext}'"})
     completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4",
         messages=messages,
         temperature=0,
     )
