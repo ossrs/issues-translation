@@ -126,6 +126,15 @@ def do_gpt_translate(plaintext, messages):
             if "' in English" in translated:
                 translated = translated.split("' in English")[0]
 
+        # Filter:
+        #       We can discuss more clearly on Discord.
+        #       Please ensure to maintain the markdown structure.
+        # to:
+        #       We can discuss more clearly on Discord.
+        lines = translated.split('\n')
+        if len(lines) > 0 and 'maintain' in lines[-1] and 'markdown structure' in lines[-1]:
+            translated = '\n'.join(lines[:-1])
+
         return (translated, True)
     except openai.InvalidRequestError as e:
         if e.code == 'context_length_exceeded':
