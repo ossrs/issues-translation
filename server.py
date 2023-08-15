@@ -10,6 +10,8 @@ parser.add_argument("--forward", type=str, required=True, help="Forward message 
 parser.add_argument("--token", type=str, required=False, help="GitHub access token, for example, github_pat_xxx_yyyyyy")
 parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy, for example, x.y.z")
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
+parser.add_argument("--secret", type=str, required=False, help="The secret in url, for example, xxxxxx")
+parser.add_argument("--open-collective", type=str, required=False, help="Callback for the OpenCollective event.")
 
 args = parser.parse_args()
 tools.github_token_init(args.token)
@@ -23,9 +25,31 @@ logs.append(f"token: {len(os.environ.get('GITHUB_TOKEN'))}B")
 logs.append(f"proxy: {len(openai.api_base)}B")
 logs.append(f"key: {len(openai.api_key)}B")
 logs.append(f"forward: {args.forward}")
+if args.secret is not None:
+    logs.append(f"secret: {len(args.secret)}B")
+if args.open_collective is not None:
+    logs.append(f"open_collective: {args.open_collective}")
 print(f"run with {', '.join(logs)}")
 
-def handle_request(j_req, event, delivery, headers):
+def handle_oc_request(j_req, event, delivery, headers):
+    do_forward = True
+
+    if do_forward and args.open_collective is not None:
+        # Without any Host set.
+        if 'Host' in headers:
+            del headers['Host']
+        # Reset the Content-Type to application/json.
+        if 'Content-Type' in headers:
+            del headers['Content-Type']
+        if 'content-type' in headers:
+            del headers['content-type']
+        headers['Content-Type'] = 'application/json'
+        res = requests.post(args.open_collective, json=j_req, headers=headers)
+        print(f"Thread: {delivery}: Response {res.status_code} {res.reason} {len(res.text)}B {res.headers}")
+
+    print(f"Thread: {delivery}: Done")
+
+def handle_github_request(j_req, event, delivery, headers):
     action = j_req['action'] if 'action' in j_req else None
     print(f"Thread: {delivery}: Got a event {event} {action}, {headers}")
 
@@ -172,7 +196,7 @@ def handle_request(j_req, event, delivery, headers):
                         raise e
             j_req['comment']['body'] = body_trans
 
-    if do_forward:
+    if do_forward and args.forward is not None:
         # Without any Host set.
         if 'Host' in headers:
             del headers['Host']
@@ -196,34 +220,49 @@ class Server(http.server.HTTPServer):
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path != '/api/v1/echo':
-            self.send_error(404, 'Not Found')
+            return self.send_error(404, 'Not Found')
         self.send_response(200)
         self.send_header('Content-Type', 'text/plain')
         self.end_headers()
         self.wfile.write(b'HelloWorld')
     def do_POST(self):
-        if self.path != '/api/v1/hooks':
-            self.send_error(404, 'Not Found')
+        if '/api/v1/hooks' not in self.path:
+            return self.send_error(404, 'Not Found')
+        if args.secret is not None and args.secret not in self.path:
+            return self.send_error(403, 'Forbidden')
         # Read the message and convert it to a JSON object.
         content_length = int(self.headers.get('Content-Length'))
         req_body = self.rfile.read(content_length)
         j_req = json.loads(req_body.decode('utf-8'))
-        hook = None
-        if 'hook' in j_req and 'config' in j_req['hook'] and 'url' in j_req['hook']['config']:
-            hook = j_req['hook']['config']['url']
-        event = self.headers.get('X-GitHub-Event')
-        delivery = self.headers.get('X-GitHub-Delivery')
-        print(f"{delivery}: Get POST body {len(req_body)}B, event={event}, hook={hook}, headers={self.headers}")
 
-        if hook is not None:
-            j_req['hook']['config']['url'] = args.forward
         headers = {}
         for key in self.headers.keys():
             headers[key] = self.headers.get(key)
 
-        print(f"{delivery}: Start a thread to handle {event}")
-        thread = threading.Thread(target=handle_request, args=(j_req, event, delivery, headers))
-        thread.start()
+        # For OpenCollective.
+        if 'type' in j_req and 'CollectiveId' in j_req:
+            event = j_req['type']
+            delivery = j_req['CollectiveId']
+
+            # Deliver to thread.
+            print(f"{delivery}: Start a thread to handle {event}")
+            thread = threading.Thread(target=handle_oc_request, args=(j_req, event, delivery, headers))
+            thread.start()
+        # For GitHub.
+        else:
+            event = self.headers.get('X-GitHub-Event')
+            delivery = self.headers.get('X-GitHub-Delivery')
+            hook = None
+            if 'hook' in j_req and 'config' in j_req['hook'] and 'url' in j_req['hook']['config']:
+                hook = j_req['hook']['config']['url']
+            if hook is not None:
+                j_req['hook']['config']['url'] = args.forward
+            print(f"{delivery}: Get POST body {len(req_body)}B, event={event}, hook={hook}, headers={self.headers}")
+
+            # Deliver to thread.
+            print(f"{delivery}: Start a thread to handle {event}")
+            thread = threading.Thread(target=handle_github_request, args=(j_req, event, delivery, headers))
+            thread.start()
 
         self.send_response(204)
         self.end_headers()
