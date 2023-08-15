@@ -45,7 +45,7 @@ def handle_oc_request(j_req, event, delivery, headers):
         if name is not None and formattedAmountWithInterval is not None:
             do_forward = True
             j_discord['content'] = f":champagne_glass: New member {name} just joined SRS and contributed with {formattedAmountWithInterval}"
-            print(f"Thread: {delivery}: Got an {event} with {name} {formattedAmountWithInterval}")
+            print(f"Thread: {delivery}: Got an {event} as {j_discord}")
     elif event == 'collective.transaction.created':
         if 'data' in j_req and 'fromCollective' in j_req['data'] and 'name' in j_req['data']['fromCollective']:
             name = j_req['data']['fromCollective']['name']
@@ -54,7 +54,7 @@ def handle_oc_request(j_req, event, delivery, headers):
         if name is not None and formattedAmountWithInterval is not None:
             do_forward = True
             j_discord['content'] = f":pray: Financial contribution: {name} gave {formattedAmountWithInterval} to SRS!"
-            print(f"Thread: {delivery}: Got an {event} with {name} {formattedAmountWithInterval}")
+            print(f"Thread: {delivery}: Got an {event} as {j_discord}")
     else:
         print(f"Thread: {delivery}: Ignore event {event}")
 
