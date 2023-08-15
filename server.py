@@ -44,7 +44,7 @@ def handle_oc_request(j_req, event, delivery, headers):
             formattedAmountWithInterval = j_req['data']['order']['formattedAmountWithInterval']
         if name is not None and formattedAmountWithInterval is not None:
             do_forward = True
-            j_discord['content'] = f"New member {name} just joined SRS and contributed with {formattedAmountWithInterval}"
+            j_discord['content'] = f":champagne_glass: New member {name} just joined SRS and contributed with {formattedAmountWithInterval}"
             print(f"Thread: {delivery}: Got an {event} with {name} {formattedAmountWithInterval}")
     elif event == 'collective.transaction.created':
         if 'data' in j_req and 'fromCollective' in j_req['data'] and 'name' in j_req['data']['fromCollective']:
@@ -53,7 +53,7 @@ def handle_oc_request(j_req, event, delivery, headers):
             formattedAmountWithInterval = j_req['data']['transaction']['formattedAmountWithInterval']
         if name is not None and formattedAmountWithInterval is not None:
             do_forward = True
-            j_discord['content'] = f"Financial contribution: {name} gave {formattedAmountWithInterval} to SRS!"
+            j_discord['content'] = f":pray: Financial contribution: {name} gave {formattedAmountWithInterval} to SRS!"
             print(f"Thread: {delivery}: Got an {event} with {name} {formattedAmountWithInterval}")
     else:
         print(f"Thread: {delivery}: Ignore event {event}")
@@ -69,7 +69,7 @@ def handle_oc_request(j_req, event, delivery, headers):
             del headers['content-type']
         headers['Content-Type'] = 'application/json'
         res = requests.post(args.open_collective, json=j_discord, headers=headers)
-        print(f"Thread: {delivery}: Response {res.status_code} {res.reason} {res.text} {res.headers}")
+        print(f"Thread: {delivery}: Response {res.status_code} {res.reason} {len(res.text)}B {res.headers}")
 
     print(f"Thread: {delivery}: Done")
 
