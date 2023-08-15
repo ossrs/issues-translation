@@ -234,7 +234,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length'))
         req_body = self.rfile.read(content_length)
         j_req = json.loads(req_body.decode('utf-8'))
-        print(f"Got a request {self.path} {len(req_body)}B {self.headers}")
+        #print(f"Got a request {self.path} {len(req_body)}B {self.headers}")
+        print(f"Got a request {self.path} {self.headers} {req_body}")
 
         headers = {}
         for key in self.headers.keys():
