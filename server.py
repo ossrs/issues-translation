@@ -50,7 +50,7 @@ def handle_oc_request(j_req, event, delivery, headers):
         if 'data' in j_req and 'fromCollective' in j_req['data'] and 'name' in j_req['data']['fromCollective']:
             name = j_req['data']['fromCollective']['name']
         if 'data' in j_req and 'transaction' in j_req['data'] and 'formattedAmountWithInterval' in j_req['data']['transaction']:
-            formattedAmountWithInterval = j_req['data']['order']['formattedAmountWithInterval']
+            formattedAmountWithInterval = j_req['data']['transaction']['formattedAmountWithInterval']
         if name is not None and formattedAmountWithInterval is not None:
             do_forward = True
             j_discord['content'] = f"Financial contribution: {name} gave {formattedAmountWithInterval} to SRS!"
