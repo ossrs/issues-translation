@@ -237,20 +237,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         headers = {}
         for key in self.headers.keys():
             headers[key] = self.headers.get(key)
-        #print(f"Got a request {self.path} {len(req_body)}B {headers}")
-        print(f"Got a request {self.path} {headers} {req_body}")
+        print(f"Got a request {self.path} {len(req_body)}B {headers}")
 
-        # For OpenCollective.
-        if 'type' in j_req and 'CollectiveId' in j_req:
-            event = j_req['type']
-            delivery = j_req['CollectiveId']
-
-            # Deliver to thread.
-            print(f"{delivery}: Start a thread to handle {event}")
-            thread = threading.Thread(target=handle_oc_request, args=(j_req, event, delivery, headers))
-            thread.start()
         # For GitHub.
-        else:
+        if 'X-GitHub-Event' in self.headers and 'X-GitHub-Delivery' in self.headers:
             event = self.headers.get('X-GitHub-Event')
             delivery = self.headers.get('X-GitHub-Delivery')
             hook = None
@@ -264,6 +254,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             print(f"{delivery}: Start a thread to handle {event}")
             thread = threading.Thread(target=handle_github_request, args=(j_req, event, delivery, headers))
             thread.start()
+        # For OpenCollective.
+        elif 'type' in j_req and 'CollectiveId' in j_req:
+            event = j_req['type']
+            delivery = j_req['CollectiveId']
+            print(f"Got a request {self.path} {headers} {req_body}")
+
+            # Deliver to thread.
+            print(f"{delivery}: Start a thread to handle {event}")
+            thread = threading.Thread(target=handle_oc_request, args=(j_req, event, delivery, headers))
+            thread.start()
+        else:
+            return self.send_error(404, 'Not Found')
 
         self.send_response(204)
         self.end_headers()
