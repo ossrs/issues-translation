@@ -33,6 +33,11 @@ print(f"run with {', '.join(logs)}")
 
 def handle_oc_request(j_req, event, delivery, headers):
     do_forward = True
+    j_discord = {}
+    if event == 'collective.member.created':
+        j_discord = {
+            'content': 'Hello World',
+        }
 
     if do_forward and args.open_collective is not None:
         # Without any Host set.
@@ -44,7 +49,7 @@ def handle_oc_request(j_req, event, delivery, headers):
         if 'content-type' in headers:
             del headers['content-type']
         headers['Content-Type'] = 'application/json'
-        res = requests.post(args.open_collective, json=j_req, headers=headers)
+        res = requests.post(args.open_collective, json=j_discord, headers=headers)
         print(f"Thread: {delivery}: Response {res.status_code} {res.reason} {res.text} {res.headers}")
 
     print(f"Thread: {delivery}: Done")
