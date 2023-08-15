@@ -33,20 +33,30 @@ print(f"run with {', '.join(logs)}")
 
 def handle_oc_request(j_req, event, delivery, headers):
     name = None
-    if 'data' in j_req and 'member' in j_req['data'] and 'memberCollective' in j_req['data']['member'] \
-            and 'name' in j_req['data']['member']['memberCollective']:
-        name = j_req['data']['member']['memberCollective']['name']
-
     formattedAmountWithInterval = None
-    if 'data' in j_req and 'order' in j_req['data'] and 'formattedAmountWithInterval' in j_req['data']['order']:
-        formattedAmountWithInterval = j_req['data']['order']['formattedAmountWithInterval']
 
     do_forward = False
     j_discord = {}
     if event == 'collective.member.created':
+        if 'data' in j_req and 'member' in j_req['data'] and 'memberCollective' in j_req['data']['member'] and 'name' in j_req['data']['member']['memberCollective']:
+            name = j_req['data']['member']['memberCollective']['name']
+        if 'data' in j_req and 'order' in j_req['data'] and 'formattedAmountWithInterval' in j_req['data']['order']:
+            formattedAmountWithInterval = j_req['data']['order']['formattedAmountWithInterval']
         if name is not None and formattedAmountWithInterval is not None:
             do_forward = True
-            j_discord['content'] = f"New member {name} just joined SRS with {formattedAmountWithInterval}"
+            j_discord['content'] = f"New member {name} just joined SRS and contributed with {formattedAmountWithInterval}"
+            print(f"Thread: {delivery}: Got an {event} with {name} {formattedAmountWithInterval}")
+    elif event == 'collective.transaction.created':
+        if 'data' in j_req and 'fromCollective' in j_req['data'] and 'name' in j_req['data']['fromCollective']:
+            name = j_req['data']['fromCollective']['name']
+        if 'data' in j_req and 'transaction' in j_req['data'] and 'formattedAmountWithInterval' in j_req['data']['transaction']:
+            formattedAmountWithInterval = j_req['data']['order']['formattedAmountWithInterval']
+        if name is not None and formattedAmountWithInterval is not None:
+            do_forward = True
+            j_discord['content'] = f"Financial contribution: {name} gave {formattedAmountWithInterval} to SRS!"
+            print(f"Thread: {delivery}: Got an {event} with {name} {formattedAmountWithInterval}")
+    else:
+        print(f"Thread: {delivery}: Ignore event {event}")
 
     if do_forward and args.open_collective is not None:
         # Without any Host set.
@@ -209,6 +219,8 @@ def handle_github_request(j_req, event, delivery, headers):
                     else:
                         raise e
             j_req['comment']['body'] = body_trans
+    else:
+        print(f"Thread: {delivery}: Ignore event {event}")
 
     if do_forward and args.forward is not None:
         # Without any Host set.
