@@ -91,7 +91,7 @@ subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=T
 print(f"Switch to PR branch done.\n")
 
 print(f"===============Update Release===============")
-command = ["bash", "scripts/update_version.sh", "--pr", str(pr["number"]), "--title", pr_title_refined]
+command = ["bash", "scripts/update_version.sh", "--pr", str(pr["number"]), "--title", pr_title_refined.strip('.')]
 if args.v5:
     command.append("--v5")
 if args.v6:
