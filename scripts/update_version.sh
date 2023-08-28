@@ -64,7 +64,7 @@ function update_changelog() {
     ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to update version"; exit $ret; fi
 
     COMMIT_MESSAGE="$COMMIT_MESSAGE v${VERSION}.0.${NEXT}"
-    MESSAGE="* v${VERSION}.0, $(date +"%Y-%m-%d"), Merge [#${pr}](${PR_PREFIX}/${pr}): ${title}. v${VERSION}.0.${REVISION} (#${pr})" &&
+    MESSAGE="* v${VERSION}.0, $(date +"%Y-%m-%d"), Merge [#${pr}](${PR_PREFIX}/${pr}): ${title}. v${VERSION}.0.${NEXT} (#${pr})" &&
     echo "MESSAGE=${MESSAGE}"
     ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to make message"; exit $ret; fi
 
