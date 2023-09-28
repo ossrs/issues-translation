@@ -8,8 +8,8 @@ parser.add_argument("--input", type=str, required=True, help="GitHub issue URL, 
 parser.add_argument("--token", type=str, required=False, help="GitHub access token, for example, github_pat_xxx_yyyyyy")
 parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy, for example, x.y.z")
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
-parser.add_argument("--v5", type=bool, required=False, help="Whether merge to v5 branch")
-parser.add_argument("--v6", type=bool, required=False, help="Whether merge to v6 branch")
+parser.add_argument("--v5", type=bool, required=False, help="Whether merge to v5 branch, True or False(default)")
+parser.add_argument("--v6", type=bool, required=False, help="Whether merge to v6 branch, True or False(default)")
 
 args = parser.parse_args()
 tools.github_token_init(args.token)
@@ -87,6 +87,10 @@ if tools.TRANS_DELIMETER_PR in pr_body:
 
 print(f"===============Switch to PR branch===============")
 command = ["bash", "scripts/switch_pr_repo.sh", "--remote", pr_head_ref_repo, "--branch", pr_head_ref_name]
+if args.v5:
+    command.append("--v5")
+if args.v6:
+    command.append("--v6")
 subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
 print(f"Switch to PR branch done.\n")
 

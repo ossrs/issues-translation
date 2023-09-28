@@ -12,6 +12,8 @@ PR_REPO=pr-tmp
 echo "SRS_HOME=${SRS_HOME}, PR_REPO=${PR_REPO}"
 
 help=no
+v5=no
+v6=no
 remote=
 branch=
 
@@ -30,6 +32,8 @@ if [[ "$help" == yes ]]; then
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
     echo "  -h, --help    Show this help message and exit"
+    echo "  --v5          Whether merge to 5.0"
+    echo "  --v6          Whether merge to 6.0"
     echo "  --remote      The remote respository of pr, for example, winlinvip/srs"
     echo "  --branch      The remote branch of pr, for example, feature/ai-translate"
     exit 0
@@ -45,19 +49,29 @@ if [[ -z $branch ]]; then
     exit 1
 fi
 
-echo "remote=${remote}, branch=${branch}"
+echo "remote=${remote}, branch=${branch}, v5=${v5}, v6=${v6}"
+
+if [[ $v5 == no && $v6 == no ]]; then
+  echo "Please specify the version by --v5 or --v6"
+  exit 1
+fi
 
 cd $SRS_HOME &&
 echo "Switch to SRS_HOME $SRS_HOME OK"
 ret=$?; if [[ 0 -ne $ret ]]; then echo "Switch to SRS_HOME $SRS_HOME failed, ret=$ret"; exit $ret; fi
 
-git checkout develop &&
-echo "Switch to branch develop OK"
-ret=$?; if [[ 0 -ne $ret ]]; then echo "Switch to branch develop failed, ret=$ret"; exit $ret; fi
+TARGET_BRANCH=develop
+if [[ $v5 == yes && $v6 == no ]]; then
+  TARGET_BRANCH=5.0release
+fi
+
+git checkout $TARGET_BRANCH &&
+echo "Switch to branch $TARGET_BRANCH OK"
+ret=$?; if [[ 0 -ne $ret ]]; then echo "Switch to branch $TARGET_BRANCH failed, ret=$ret"; exit $ret; fi
 
 git pull &&
-echo "Pull develop OK"
-ret=$?; if [[ 0 -ne $ret ]]; then echo "Pull develop failed, ret=$ret"; exit $ret; fi
+echo "Pull $TARGET_BRANCH OK"
+ret=$?; if [[ 0 -ne $ret ]]; then echo "Pull $TARGET_BRANCH failed, ret=$ret"; exit $ret; fi
 
 git remote remove $PR_REPO 2>/dev/null || echo "Remove $PR_REPO not exists, OK" &&
 REMOTE_URL="git@github.com:$remote.git" &&
@@ -75,8 +89,8 @@ git checkout -b $TMP_BRANCH $PR_REPO/$branch &&
 echo "Switch to branch $TMP_BRANCH track $remote $branch OK"
 ret=$?; if [[ 0 -ne $ret ]]; then echo "Switch to branch $TMP_BRANCH track $remote $branch failed, ret=$ret"; exit $ret; fi
 
-git merge --no-edit develop &&
-echo "Merge develop to branch $TMP_BRANCH OK"
-ret=$?; if [[ 0 -ne $ret ]]; then echo "Merge develop to branch $TMP_BRANCH failed, ret=$ret"; exit $ret; fi
+git merge --no-edit $TARGET_BRANCH &&
+echo "Merge $TARGET_BRANCH to branch $TMP_BRANCH OK"
+ret=$?; if [[ 0 -ne $ret ]]; then echo "Merge $TARGET_BRANCH to branch $TMP_BRANCH failed, ret=$ret"; exit $ret; fi
 
 echo "OK"

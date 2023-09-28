@@ -1,4 +1,4 @@
-import os, openai, argparse, tools, ast
+import os, openai, argparse, tools
 
 import dotenv
 dotenv.load_dotenv(dotenv.find_dotenv())
@@ -8,12 +8,16 @@ parser.add_argument("--input", type=str, required=True, help="GitHub issue URL, 
 parser.add_argument("--token", type=str, required=False, help="GitHub access token, for example, github_pat_xxx_yyyyyy")
 parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy, for example, x.y.z")
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
-parser.add_argument("--title", type=ast.literal_eval, default=True, required=False, help="Whether rephrase title, True(default) or False")
-parser.add_argument("--body", type=ast.literal_eval, default=True, required=False, help="Whether rephrase body, True(default) or False")
+parser.add_argument("--title", type=bool, default=False, required=False, help="Whether rephrase title, True or False(default)")
+parser.add_argument("--body", type=bool, default=False, required=False, help="Whether rephrase body, True or False(default)")
 
 args = parser.parse_args()
 tools.github_token_init(args.token)
 tools.openai_init(args.key, args.proxy)
+
+if not args.title and not args.body:
+    print(f"Error: --title or --body must be specified")
+    exit(0)
 
 logs = []
 logs.append(f"issue: {args.input}")
@@ -23,10 +27,6 @@ logs.append(f"key: {len(openai.api_key)}B")
 logs.append(f"title: {args.title}")
 logs.append(f"body: {args.body}")
 print(f"run with {', '.join(logs)}")
-
-if not args.title and not args.body:
-    print("Nothing to do")
-    exit(0)
 
 pr = tools.parse_pullrequest_url(args.input)
 j_pr = tools.query_pullrequest(pr["owner"], pr["name"], pr["number"])
