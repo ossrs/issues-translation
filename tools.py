@@ -1,9 +1,9 @@
 import os, requests, openai, emoji
 from urllib.parse import urlparse
 
-PROMPT_TRANS_HEAD="Translate to simple, easy to understand, conversational English:"
+PROMPT_TRANS_HEAD="Translate to simple, easy to understand, conversational English."
 PROMPT_TRANS_SANDWICH="Make sure to maintain the markdown structure."
-PROMPT_REPHRASE_REFINE="Rephrase text in simple, easy to understand, conversational English:"
+PROMPT_REPHRASE_REFINE="Rephrase text in simple, easy to understand, conversational English."
 TRANS_MAGIC="TRANS_BY_GPT4"
 TRANS_DELIMETER = '\n\n'
 TRANS_DELIMETER_PR = '---------'
@@ -71,6 +71,7 @@ def gpt_translate(plaintext, trans_by_gpt):
     segments = split_segments(plaintext)
     final_trans = []
     real_translated = False
+    system = f"{PROMPT_TRANS_HEAD} {PROMPT_TRANS_SANDWICH}"
     messages = []
     for segment in segments:
         # Directly keep the empty line.
@@ -88,14 +89,14 @@ def gpt_translate(plaintext, trans_by_gpt):
             final_trans.append(segment)
         else:
             real_translated = trans_by_gpt = True
-            messages.append({"role": "user", "content": f"{PROMPT_TRANS_HEAD}\n'{segment}'\n{PROMPT_TRANS_SANDWICH}"})
+            messages.append({"role": "user", "content": segment})
             if len(messages) > 3:
                 messages = messages[-3:]
             retry = 3
             add_to_messages = False
             for i in range(retry):
                 try:
-                    (segment_trans, add_to_messages) = do_gpt_translate(segment, messages)
+                    (segment_trans, add_to_messages) = do_gpt_translate(segment, system, messages)
                     break
                 except Exception as e:
                     if i == retry - 1:
@@ -108,11 +109,15 @@ def gpt_translate(plaintext, trans_by_gpt):
     plaintext_trans = "\n".join(final_trans).strip('\n')
     return (plaintext_trans, trans_by_gpt, real_translated)
 
-def do_gpt_translate(plaintext, messages):
+def do_gpt_translate(plaintext, system, messages):
     try:
+        prompts = messages.copy()
+        if system is not None:
+            prompts.insert(0, {"role": "system", "content": system})
+
         completion = openai.ChatCompletion.create(
             model="gpt-4",
-            messages=messages,
+            messages=prompts,
             temperature=0,
         )
         translated = completion.choices[0].message.content.strip('\'"')
@@ -144,7 +149,8 @@ def do_gpt_translate(plaintext, messages):
 
 def gpt_refine_pr(plaintext):
     messages = []
-    messages.append({"role": "user", "content": f"{PROMPT_REPHRASE_REFINE}\n'{plaintext}'"})
+    messages.append({"role": "system", "content": PROMPT_REPHRASE_REFINE})
+    messages.append({"role": "user", "content": plaintext})
     completion = openai.ChatCompletion.create(
         model="gpt-4",
         messages=messages,
