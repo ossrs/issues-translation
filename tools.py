@@ -1,9 +1,9 @@
 import os, requests, openai, emoji
 from urllib.parse import urlparse
 
-PROMPT_TRANS_HEAD="Translate to simple, easy to understand, conversational English."
+PROMPT_TRANS_HEAD="Translate to simple, easy-to-understand, technical English."
 PROMPT_TRANS_SANDWICH="Make sure to maintain the markdown structure."
-PROMPT_REPHRASE_REFINE="Rephrase text in simple, easy to understand, conversational English."
+PROMPT_REPHRASE_REFINE="Rephrase text in simple, easy-to-understand, technical English."
 TRANS_MAGIC="TRANS_BY_GPT4"
 TRANS_DELIMETER = '\n\n'
 TRANS_DELIMETER_PR = '---------'
