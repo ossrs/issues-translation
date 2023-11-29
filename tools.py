@@ -1,6 +1,7 @@
 import os, requests, openai, emoji
 from urllib.parse import urlparse
 
+GPT_MODEL="gpt-4-1106-preview"
 PROMPT_TRANS_HEAD="Translate to simple, easy-to-understand, technical English."
 PROMPT_TRANS_SANDWICH="Make sure to maintain the markdown structure."
 PROMPT_REPHRASE_REFINE="Rephrase text in simple, easy-to-understand, technical English."
@@ -116,7 +117,7 @@ def do_gpt_translate(plaintext, system, messages):
             prompts.insert(0, {"role": "system", "content": system})
 
         completion = openai.ChatCompletion.create(
-            model="gpt-4",
+            model=GPT_MODEL,
             messages=prompts,
             temperature=0,
         )
@@ -152,7 +153,7 @@ def gpt_refine_pr(plaintext):
     messages.append({"role": "system", "content": PROMPT_REPHRASE_REFINE})
     messages.append({"role": "user", "content": plaintext})
     completion = openai.ChatCompletion.create(
-        model="gpt-4",
+        model=GPT_MODEL,
         messages=messages,
         temperature=0,
     )
