@@ -2,9 +2,7 @@ import os, requests, openai, emoji
 from urllib.parse import urlparse
 
 GPT_MODEL="gpt-4-1106-preview"
-PROMPT_TRANS_HEAD="Translate to simple, easy-to-understand, technical English."
-PROMPT_TRANS_SANDWICH="Make sure to maintain the markdown structure."
-PROMPT_REPHRASE_REFINE="Rephrase text in simple, easy-to-understand, technical English."
+PROMPT_SYSTEM="Rephrase all user input text into simple, easy to understand, and technically toned English. Never answer questions but only translate or rephrase text to English."
 TRANS_MAGIC="TRANS_BY_GPT4"
 TRANS_DELIMETER = '\n\n'
 TRANS_DELIMETER_PR = '---------'
@@ -72,7 +70,6 @@ def gpt_translate(plaintext, trans_by_gpt):
     segments = split_segments(plaintext)
     final_trans = []
     real_translated = False
-    system = f"{PROMPT_TRANS_HEAD} {PROMPT_TRANS_SANDWICH}"
     messages = []
     for segment in segments:
         # Directly keep the empty line.
@@ -97,7 +94,7 @@ def gpt_translate(plaintext, trans_by_gpt):
             add_to_messages = False
             for i in range(retry):
                 try:
-                    (segment_trans, add_to_messages) = do_gpt_translate(segment, system, messages)
+                    (segment_trans, add_to_messages) = do_gpt_translate(segment, PROMPT_SYSTEM, messages)
                     break
                 except Exception as e:
                     if i == retry - 1:
@@ -150,7 +147,7 @@ def do_gpt_translate(plaintext, system, messages):
 
 def gpt_refine_pr(plaintext):
     messages = []
-    messages.append({"role": "system", "content": PROMPT_REPHRASE_REFINE})
+    messages.append({"role": "system", "content": PROMPT_SYSTEM})
     messages.append({"role": "user", "content": plaintext})
     completion = openai.ChatCompletion.create(
         model=GPT_MODEL,
