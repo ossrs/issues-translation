@@ -26,6 +26,12 @@ def openai_init(key, proxy):
 
     if os.environ.get("OPENAI_ORGANIZATION") is not None:
         openai.organization = os.environ.get("OPENAI_ORGANIZATION")
+        print(f"Use OPENAI_ORGANIZATION={openai.organization}")
+
+    if os.environ.get("OPENAI_CHAT_MODEL") is not None:
+        global GPT_MODEL
+        GPT_MODEL = os.environ.get("OPENAI_CHAT_MODEL")
+        print(f"Use OPENAI_CHAT_MODEL={GPT_MODEL}")
 
     if proxy is not None:
         openai.api_base = "http://" + proxy + "/v1/"
