@@ -24,6 +24,9 @@ def openai_init(key, proxy):
     else:
         raise Exception("OPENAI_API_KEY is not set")
 
+    if os.environ.get("OPENAI_ORGANIZATION") is not None:
+        openai.organization = os.environ.get("OPENAI_ORGANIZATION")
+
     if proxy is not None:
         openai.api_base = "http://" + proxy + "/v1/"
     elif os.environ.get("OPENAI_PROXY") is not None:
