@@ -10,13 +10,14 @@ parser.add_argument("--proxy", type=str, required=False, help="OpenAI API proxy,
 parser.add_argument("--key", type=str, required=False, help="OpenAI API key, for example, xxxyyyzzz")
 parser.add_argument("--v5", type=bool, required=False, help="Whether merge to v5 branch, True or False(default)")
 parser.add_argument("--v6", type=bool, required=False, help="Whether merge to v6 branch, True or False(default)")
+parser.add_argument("--v7", type=bool, required=False, help="Whether merge to v7 branch, True or False(default)")
 
 args = parser.parse_args()
 tools.github_token_init(args.token)
 tools.openai_init(args.key, args.proxy)
 
-if not args.v5 and not args.v6:
-    print(f"Error: --v5 or --v6 must be specified")
+if not args.v5 and not args.v6 and not args.v7:
+    print(f"Error: --v5 or --v6 or --v7 must be specified")
     sys.exit(1)
 
 logs = []
@@ -26,6 +27,7 @@ logs.append(f"proxy: {len(openai.api_base)}B")
 logs.append(f"key: {len(openai.api_key)}B")
 logs.append(f"v5: {args.v5}")
 logs.append(f"v6: {args.v6}")
+logs.append(f"v7: {args.v7}")
 print(f"run with {', '.join(logs)}")
 
 pr = tools.parse_pullrequest_url(args.input)
@@ -91,6 +93,8 @@ if args.v5:
     command.append("--v5")
 if args.v6:
     command.append("--v6")
+if args.v7:
+    command.append("--v7")
 subprocess.run(command, stdout=sys.stdout, stderr=sys.stderr, text=True, check=True)
 print(f"Switch to PR branch done.\n")
 
@@ -100,6 +104,8 @@ if args.v5:
     command.append("--v5")
 if args.v6:
     command.append("--v6")
+if args.v7:
+    command.append("--v7")
 result = subprocess.run(command, stdout=sys.stdout, stderr=subprocess.PIPE, text=True, check=True)
 release_message = result.stderr
 print(f"Update release done. {release_message}\n")

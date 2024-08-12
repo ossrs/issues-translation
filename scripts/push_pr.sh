@@ -20,6 +20,7 @@ while [[ "$#" -gt 0 ]]; do
         -h|--help) help=yes; shift ;;
         --v5) v5=yes; shift ;;
         --v6) v6=yes; shift ;;
+        --v7) v7=yes; shift ;;
         --remote) remote=$2; shift 2;;
         --branch) branch=$2; shift 2;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;

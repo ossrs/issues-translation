@@ -22,6 +22,7 @@ while [[ "$#" -gt 0 ]]; do
         -h|--help) help=yes; shift ;;
         --v5) v5=yes; shift ;;
         --v6) v6=yes; shift ;;
+        --v7) v7=yes; shift ;;
         --remote) remote=$2; shift 2;;
         --branch) branch=$2; shift 2;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
@@ -34,6 +35,7 @@ if [[ "$help" == yes ]]; then
     echo "  -h, --help    Show this help message and exit"
     echo "  --v5          Whether merge to 5.0"
     echo "  --v6          Whether merge to 6.0"
+    echo "  --v7          Whether merge to 7.0"
     echo "  --remote      The remote respository of pr, for example, winlinvip/srs"
     echo "  --branch      The remote branch of pr, for example, feature/ai-translate"
     exit 0
@@ -49,10 +51,10 @@ if [[ -z $branch ]]; then
     exit 1
 fi
 
-echo "remote=${remote}, branch=${branch}, v5=${v5}, v6=${v6}"
+echo "remote=${remote}, branch=${branch}, v5=${v5}, v6=${v6}, v7=${v7}"
 
-if [[ $v5 == no && $v6 == no ]]; then
-  echo "Please specify the version by --v5 or --v6"
+if [[ $v5 == no && $v6 == no && $v7 == no ]]; then
+  echo "Please specify the version by --v5 or --v6 or --v7"
   exit 1
 fi
 
@@ -61,8 +63,10 @@ echo "Switch to SRS_HOME $SRS_HOME OK"
 ret=$?; if [[ 0 -ne $ret ]]; then echo "Switch to SRS_HOME $SRS_HOME failed, ret=$ret"; exit $ret; fi
 
 TARGET_BRANCH=develop
-if [[ $v5 == yes && $v6 == no ]]; then
+if [[ $v5 == yes && $v6 == no && $v7 == no ]]; then
   TARGET_BRANCH=5.0release
+elif [[ $v5 == no && $v6 == yes && $v7 == no ]]; then
+  TARGET_BRANCH=6.0release
 fi
 
 git checkout $TARGET_BRANCH &&

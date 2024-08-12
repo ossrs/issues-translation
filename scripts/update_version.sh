@@ -14,6 +14,7 @@ echo "SRS_HOME=${SRS_HOME}, PR_PREFIX=${PR_PREFIX}"
 help=no
 v5=no
 v6=no
+v7=no
 pr=
 title=
 
@@ -22,6 +23,7 @@ while [[ "$#" -gt 0 ]]; do
         -h|--help) help=yes; shift ;;
         --v5) v5=yes; shift ;;
         --v6) v6=yes; shift ;;
+        --v7) v7=yes; shift ;;
         --pr) pr=$2; shift 2;;
         --title) title=$2; shift 2;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
@@ -34,6 +36,7 @@ if [[ "$help" == yes ]]; then
     echo "  -h, --help    Show this help message and exit"
     echo "  --v5          Whether merge PR to 5.0. Default: no"
     echo "  --v6          Whether merge PR to 6.0. Default: no"
+    echo "  --v7          Whether merge PR to 7.0. Default: no"
     echo "  --pr          The GitHub pr number."
     echo "  --title       The GitHub pr title."
     exit 0
@@ -49,7 +52,7 @@ if [[ -z $title ]]; then
     exit 1
 fi
 
-echo "v5=${v5}, v6=${v6}"
+echo "v5=${v5}, v6=${v6}, v7=${v7}"
 
 function update_changelog() {
     VERSION=$1
@@ -89,10 +92,15 @@ if [[ $v6 == yes ]]; then
   update_changelog 6
   echo "Update changelog for version 6 ok"
 fi
+
+if [[ $v7 == yes ]]; then
+  update_changelog 7
+  echo "Update changelog for version 6 ok"
+fi
 echo $COMMIT_MESSAGE >&2
 
-if [[ $v5 == no && $v6 == no ]]; then
-  echo "Please specify the version by --v5 or --v6"
+if [[ $v5 == no && $v6 == no && $v7 == no ]]; then
+  echo "Please specify the version by --v5 or --v6 or --v7"
   exit 1
 fi
 
