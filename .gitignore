@@ -162,3 +162,4 @@ cython_debug/
 ai-translation
 openai-cookbook
 srs-cloud
+.DS_Store
