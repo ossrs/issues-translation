@@ -51,7 +51,7 @@ OPENAI_API_KEY=xxx
 OPENAI_PROXY=xxx
 ```
 
-> Note: The `GITHUB_TOKEN` is required to update the issue ,please read [Authenticating to the REST API](https://docs.github.com/en/rest/overview/authenticating-to-the-rest-api) to create one.
+> Note: The `GITHUB_TOKEN` is required to update the issue ,please create one in [personal pat](https://github.com/settings/personal-access-tokens) that requires the permission from [orgnization pat](https://github.com/organizations/ossrs/settings/personal-access-tokens/active).
 
 > Note: The `OPENAI_API_KEY` is required, which is the API key for OpenAI API.
 
