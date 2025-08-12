@@ -112,4 +112,12 @@ git commit -am "$COMMIT_MESSAGE" &&
 echo "Commit $COMMIT_MESSAGE OK"
 ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to commit $COMMIT_MESSAGE"; exit $ret; fi
 
+# Use clang format to format the code.
+$SRS_HOME/trunk/scripts/clang_format.sh
+if [[ $(git status |grep -q modified && echo yes) == "yes" ]]; then
+  git commit -am "Format code by clang-format" &&
+  echo "Commit format code OK"
+  ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to commit format code"; exit $ret; fi
+fi
+
 echo "OK"
