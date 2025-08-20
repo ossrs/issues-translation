@@ -62,7 +62,7 @@ function update_changelog() {
     let NEXT=$REVISION+1
     echo "Last revision is $REVISION, next is $NEXT"
 
-    cat $SRS_HOME/trunk/src/core/srs_core_version${VERSION}.hpp |sed "s/VERSION_REVISION    ${REVISION}/VERSION_REVISION    ${NEXT}/g" > $SRS_HOME/trunk/src/core/srs_core_version${VERSION}.hpp.tmp &&
+    cat $SRS_HOME/trunk/src/core/srs_core_version${VERSION}.hpp |sed "s/VERSION_REVISION ${REVISION}/VERSION_REVISION ${NEXT}/g" > $SRS_HOME/trunk/src/core/srs_core_version${VERSION}.hpp.tmp &&
     mv $SRS_HOME/trunk/src/core/srs_core_version${VERSION}.hpp.tmp $SRS_HOME/trunk/src/core/srs_core_version${VERSION}.hpp
     ret=$?; if [[ $ret -ne 0 ]]; then echo "Failed to update version"; exit $ret; fi
 
